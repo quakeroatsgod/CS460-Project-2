@@ -7,13 +7,19 @@ run:
 	./exec
 run2:
 	./exec -alg FCFS -quantum 2 -input input
-exec: main.o input.o linked_list.o
+exec: main.o input.o io.o cpu.o linked_list.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 main.o: main.c main.h
 	$(CC) $(CFLAGS) -c $<
 
 input.o: input.c main.h
+	$(CC) $(CFLAGS) -c $<
+
+io.o: io.c main.h
+	$(CC) $(CFLAGS) -c $<
+
+cpu.o: cpu.c main.h
 	$(CC) $(CFLAGS) -c $<
 
 linked_list.o: linked_list.c main.h
