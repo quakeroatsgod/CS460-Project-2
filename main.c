@@ -1,4 +1,6 @@
 #include "main.h"
+list_t *ready_queue;
+
 // ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]
 int main(int argc, char **argv){
     // Variables 
@@ -33,7 +35,7 @@ int main(int argc, char **argv){
             return 1;
         }
     }
-
+    ready_queue = list_init();
     input_thread_init(input_thread, fp);
     usleep(400000);
     // printf("brufh\n");

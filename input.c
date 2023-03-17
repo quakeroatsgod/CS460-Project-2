@@ -1,5 +1,7 @@
 #include "main.h"
 
+extern list_t *ready_queue;
+
 int input_thread_init(pthread_t input_thread, FILE *fp){    
     if ( 0 < pthread_create( &input_thread, NULL, input_thread_run, ( void * )fp ) ){
         fprintf(stderr,"Error %d: %s\n", errno, strerror(errno));
@@ -26,7 +28,11 @@ void * input_thread_run(void *data){
             // token_next = strtok_r( NULL," ", &save_ptr );
             proc_priority = atoi( strtok_r( NULL," ", &save_ptr ) );
             proc_count = atoi( strtok_r( NULL," ", &save_ptr ) );
-            
+            int *burst_times = ( int * )malloc( sizeof( int ) * proc_count );
+            for ( int i = 0; i < proc_count; i++ ){
+                burst_times[i] = atoi( strtok_r( NULL," ", &save_ptr ) );
+            }
+            list_add( ready_queue, proc_priority, proc_count, burst_times );
         }
         // Wait for sleep duration until next process "arrives"
         else if ( strcmp( token_first, "sleep") == 0 ) {
@@ -38,6 +44,8 @@ void * input_thread_run(void *data){
         // End of input
         else if ( strcmp( token_first, "stop") == 0 )   break;
     }
+
+    list_print( ready_queue );
 
     free( line_buffer );
     printf( "thred done\n" );
