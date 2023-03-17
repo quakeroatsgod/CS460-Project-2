@@ -40,7 +40,7 @@ list_t * list_add(list_t *list, int priority, int bursts_remaining, int *burst_t
     lnode_t *new_node = create_node( priority, bursts_remaining, burst_times);
     // If the list is empty, make the node loop back to itself
     // The single node is both the head and tail
-    if (list->head == NULL && list->tail == NULL){
+    if ( list->head == NULL && list->tail == NULL ){
         new_node->next = new_node;
         new_node->previous = new_node;
         list->head = new_node;

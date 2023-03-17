@@ -37,9 +37,12 @@ lnode_t * create_node(int priority, int bursts_remaining, int *burst_times);
 int free_node(lnode_t *node);
 
 // Input thread
-int input_thread_init(pthread_t input_thread, FILE *fp);
+int input_thread_init(pthread_t *input_thread, FILE *fp);
 void * input_thread_run(void *data);
 
 // CPU thread
-
+int cpu_thread_init(pthread_t *cpu_thread);
+void * cpu_thread_run(void *data);
 // IO thread
+int io_thread_init(pthread_t *io_thread);
+void * io_thread_run(void *data);
