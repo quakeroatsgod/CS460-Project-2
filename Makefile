@@ -1,29 +1,38 @@
 CC=gcc
 CFLAGS= -lpthread -Wall -Werror
+OBJDIR=obj
+BINDIR=bin
 
-all: exec
+all:	$(OBJDIR) $(BINDIR) $(BINDIR)/exec
 
 run:
-	./exec
+	./$(BINDIR)/exec
 run2:
-	./exec -alg FCFS -quantum 2 -input input
-exec: main.o input.o io.o cpu.o linked_list.o
+	./$(BINDIR)/exec -alg FCFS -quantum 2 -input input
+
+$(BINDIR)/exec:	$(OBJDIR)/main.o $(OBJDIR)/input.o $(OBJDIR)/io.o $(OBJDIR)/cpu.o $(OBJDIR)/linked_list.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-main.o: main.c main.h
-	$(CC) $(CFLAGS) -c $<
+$(OBJDIR)/main.o:	main.c main.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
-input.o: input.c main.h
-	$(CC) $(CFLAGS) -c $<
+$(OBJDIR)/input.o:	input.c main.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
-io.o: io.c main.h
-	$(CC) $(CFLAGS) -c $<
+$(OBJDIR)/io.o:	io.c main.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
-cpu.o: cpu.c main.h
-	$(CC) $(CFLAGS) -c $<
+$(OBJDIR)/cpu.o:	cpu.c main.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
-linked_list.o: linked_list.c main.h
-	$(CC) $(CFLAGS) -c $<
+$(OBJDIR)/linked_list.o:	linked_list.c main.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
 clean:
-	rm -f *.o exec
+	rm -rf $(OBJDIR) $(BINDIR)
