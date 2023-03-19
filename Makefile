@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -lpthread -Wall -Werror
+CFLAGS= -lpthread -pthread -Wall -Werror
 OBJDIR=obj
 BINDIR=bin
 

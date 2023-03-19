@@ -17,6 +17,7 @@
 typedef struct _lnode_t    {
     int priority;
     int bursts_remaining;
+    int burst_indicator;
     int *burst_times;
     struct _lnode_t *previous;
     struct _lnode_t *next;
@@ -31,9 +32,11 @@ typedef struct _list_t {
 list_t * list_init();
 list_t * list_add(list_t *list, int priority, int bursts_remaining, int *burst_times);
 int list_print(list_t *list);
+void free_list(list_t *list);
 
 // Node specific functions
 lnode_t * create_node(int priority, int bursts_remaining, int *burst_times);
+lnode_t * remove_node(list_t *list);
 int free_node(lnode_t *node);
 
 // Input thread
