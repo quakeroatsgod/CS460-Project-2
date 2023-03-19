@@ -7,8 +7,17 @@ all:	$(OBJDIR) $(BINDIR) $(BINDIR)/exec
 
 run:
 	./$(BINDIR)/exec
-run2:
+fcfs:
 	./$(BINDIR)/exec -alg FCFS -quantum 2 -input input
+
+pr:
+	./$(BINDIR)/exec -alg PR -quantum 2 -input input
+
+rr:
+	./$(BINDIR)/exec -alg RR -quantum 2 -input input
+
+sjf:
+	./$(BINDIR)/exec -alg SJF -quantum 2 -input input
 
 $(BINDIR)/exec:	$(OBJDIR)/main.o $(OBJDIR)/input.o $(OBJDIR)/io.o $(OBJDIR)/cpu.o $(OBJDIR)/linked_list.o
 	$(CC) $(CFLAGS) -o $@ $^
