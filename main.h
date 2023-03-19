@@ -13,6 +13,7 @@
 #define PR_ALG 2
 #define RR_ALG 3
 #pragma once 
+
 // Linked list node to hold a process
 typedef struct _lnode_t    {
     int priority;
@@ -41,11 +42,16 @@ int free_node(lnode_t *node);
 
 // Input thread
 int input_thread_init(pthread_t *input_thread, FILE *fp);
+int input_thread_join(pthread_t input_thread);
 void * input_thread_run(void *data);
+int get_next_int( char *save_ptr );
 
 // CPU thread
 int cpu_thread_init(pthread_t *cpu_thread);
+int cpu_thread_join(pthread_t cpu_thread);
 void * cpu_thread_run(void *data);
+
 // IO thread
 int io_thread_init(pthread_t *io_thread);
+int io_thread_join(pthread_t io_thread);
 void * io_thread_run(void *data);

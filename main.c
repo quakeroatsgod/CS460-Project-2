@@ -1,6 +1,8 @@
 #include "main.h"
 list_t *ready_queue;
 list_t *io_queue;
+pthread_mutex_t ready_mutex;
+pthread_mutex_t io_mutex;
 
 // ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]
 int main(int argc, char **argv){
@@ -40,26 +42,23 @@ int main(int argc, char **argv){
             return 1;
         }
     }
+    // Init lists, mutexes, and threads
     ready_queue = list_init();
     io_queue = list_init();
+
+    pthread_mutex_init(&ready_mutex,NULL);
+    pthread_mutex_init(&io_mutex,NULL);
+
     input_thread_init( &input_thread, fp );
     io_thread_init( &io_thread );
     cpu_thread_init( &cpu_thread );
 
     usleep( 400000 );
 
-    if ( 0 < pthread_join( input_thread, NULL ) ) {
-        fprintf(stderr,"Error %d: %s\n", errno, strerror(errno));
-        return 1;
-    }
-    if ( 0 < pthread_join( io_thread, NULL ) ) {
-        fprintf( stderr,"Error %d: %s\n", errno, strerror( errno ) );
-        return 1;
-    }
-    if ( 0 < pthread_join( cpu_thread, NULL ) ) {
-        fprintf( stderr,"Error %d: %s\n", errno, strerror( errno ) );
-        return 1;
-    }
+    input_thread_join( input_thread );
+    io_thread_join( io_thread );
+    cpu_thread_join( cpu_thread );
+
     alg_type+=1;
     quantum_time+=1;
     free( filename );

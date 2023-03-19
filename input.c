@@ -1,6 +1,8 @@
 #include "main.h"
 
 extern list_t *ready_queue;
+extern pthread_mutex_t ready_mutex;
+extern pthread_mutex_t io_mutex;
 
 // Starts up the input thread
 int input_thread_init(pthread_t *input_thread, FILE *fp){    
@@ -11,35 +13,63 @@ int input_thread_init(pthread_t *input_thread, FILE *fp){
     return 0;
 }
 
+int input_thread_join(pthread_t input_thread){
+    if ( 0 < pthread_join( input_thread, NULL ) ) {
+        fprintf( stderr,"Error %d: %s\n", errno, strerror( errno ) );
+        return 1;
+    }
+    return 0;
+}
+
 void * input_thread_run(void *data){
     printf("thred rnning\n");
     FILE *fp = ( FILE * )data;
     size_t buffer_length = 0;
     char *line_buffer = NULL, *save_ptr = NULL;
-    int sleep_duration = 0, proc_priority = 0, proc_count = 0;
+    int sleep_duration = 0, proc_priority = 0, proc_count = 0, ready_locked = 0;
     // Iterate through each line in the input file
     while ( getline( &line_buffer,&buffer_length,fp ) != -1 ){
         char *token_first = strtok_r (line_buffer," ", &save_ptr );
         // Add process from input line to ready queue
         if ( strcmp( token_first, "proc") == 0 ) {
-            // Get process priority, count, and burst time values after the "proc" token
-            // token_next = strtok_r( NULL," ", &save_ptr );
-            proc_priority = atoi( strtok_r( NULL," ", &save_ptr ) );
-            proc_count = atoi( strtok_r( NULL," ", &save_ptr ) );
-            int *burst_times = ( int * )malloc( sizeof( int ) * proc_count );
-            for ( int i = 0; i < proc_count; i++ ){
-                burst_times[i] = atoi( strtok_r( NULL," ", &save_ptr ) );
+            // Get the ready queue mutex if this thread did not lock it
+            if ( !ready_locked ){
+                ready_locked = pthread_mutex_trylock( &ready_mutex );
+                ready_locked = 1;
             }
-            list_add( ready_queue, proc_priority, proc_count, burst_times );
+            // If the ready queue is locked by this thread, then add to the 
+            // ready queue.
+            if ( ready_locked ){
+                // Get process priority, count, and burst time values after the "proc" token
+                proc_priority = atoi( strtok_r( NULL," ", &save_ptr ) );
+                proc_count = atoi( strtok_r( NULL," ", &save_ptr ) );
+                int *burst_times = ( int * )malloc( sizeof( int ) * proc_count );
+                for ( int i = 0; i < proc_count; i++ ){
+                    burst_times[i] = atoi( strtok_r( NULL," ", &save_ptr ) );
+                }
+                list_add( ready_queue, proc_priority, proc_count, burst_times );
+            }
         }
         // Wait for sleep duration until next process "arrives"
         else if ( strcmp( token_first, "sleep") == 0 ) {
+            // Release the ready queue mutex if this thread locked the queue
+            if ( ready_locked ){
+                pthread_mutex_unlock( &ready_mutex );
+                ready_locked = 0;
+            }
             // Get sleep duration value after the "sleep" token
             sleep_duration = atoi( strtok_r( NULL," ", &save_ptr ) );
             usleep( 1000 * sleep_duration );
         }
         // End of input
-        else if ( strcmp( token_first, "stop") == 0 )   break;
+        else if ( strcmp( token_first, "stop") == 0 ){
+            // Release the ready queue mutex if this thread locked the queue
+            if ( ready_locked ){
+                pthread_mutex_unlock( &ready_mutex );
+                ready_locked = 0;
+            }
+            break;
+        }   
     }
 
     list_print( ready_queue );
@@ -49,4 +79,9 @@ void * input_thread_run(void *data){
     return NULL;
 }
 
+// Get the next integer from string tokens
+// Don't use this, for some reason it doesn't work lol
+int get_next_int( char *save_ptr ){
+    return atoi( strtok_r( NULL," ", &save_ptr ) );
+}
 
