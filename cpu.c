@@ -1,6 +1,7 @@
 #include "main.h"
 
 extern list_t *ready_queue;
+extern list_t *io_queue;
 
 // Starts up the CPU thread
 int cpu_thread_init(pthread_t *cpu_thread){    

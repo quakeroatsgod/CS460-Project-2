@@ -1,5 +1,6 @@
 #include "main.h"
 list_t *ready_queue;
+list_t *io_queue;
 
 // ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]
 int main(int argc, char **argv){
@@ -11,7 +12,11 @@ int main(int argc, char **argv){
     char *filename = NULL;
     pthread_t input_thread = 0, io_thread = 0, cpu_thread = 0;
 
-    // TODO Handle no argument inputs
+    // No argument inputs
+    // if ( argc < 2 ) {
+    //     printf( "Error, usage: ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]\n");
+    //     return 1;
+    // }
     // Algorithm option
     if ( strcmp(argv[1],"-alg") == 0 ) {
         if ( strcmp(argv[2],"FCFS") == 0 )     alg_type = FCFS_ALG;
@@ -36,6 +41,7 @@ int main(int argc, char **argv){
         }
     }
     ready_queue = list_init();
+    io_queue = list_init();
     input_thread_init( &input_thread, fp );
     io_thread_init( &io_thread );
     cpu_thread_init( &cpu_thread );
@@ -58,5 +64,7 @@ int main(int argc, char **argv){
     quantum_time+=1;
     free( filename );
     fclose( fp );
+    ready_queue->head=NULL; //Test for io_queue
+    //free_list(ready_queue); //Free the ready queue
     return 0;
 }

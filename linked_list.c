@@ -21,6 +21,7 @@ lnode_t * create_node(int priority, int bursts_remaining, int *burst_times){
     // Give node the data
     new_node->priority = priority;
     new_node->bursts_remaining = bursts_remaining;
+    new_node->burst_indicator = 0;
     new_node->burst_times = burst_times;
     return new_node;
 }
@@ -32,6 +33,22 @@ int free_node(lnode_t *node){
     free( node->burst_times );
     free( node ) ;
     return 0;
+}
+
+lnode_t * remove_node(list_t *list){
+    //TO DO: Add functionality to remove node from front of queue and return it
+    return NULL;
+}
+
+//Free the allocation for the whole list
+void free_list(list_t *list){
+    list->tail->next=NULL; //Disconnect tail from head
+    for ( lnode_t *ptr = list->head; ptr->next != NULL; ){
+        lnode_t *nextPtr = ptr->next;
+        free_node(ptr);
+        ptr = nextPtr;
+    }
+    free(list);
 }
 
 // Adds a single node to the linked list
