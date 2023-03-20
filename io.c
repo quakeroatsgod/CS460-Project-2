@@ -4,6 +4,7 @@ extern list_t *ready_queue;
 extern list_t *io_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
+extern int input_finished;
 
 // Starts up the I/O thread
 int io_thread_init(pthread_t *io_thread){    

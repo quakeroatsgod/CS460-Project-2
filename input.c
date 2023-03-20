@@ -3,6 +3,7 @@
 extern list_t *ready_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
+extern int input_finished;
 
 // Starts up the input thread
 int input_thread_init(pthread_t *input_thread, FILE *fp){    
@@ -22,7 +23,7 @@ int input_thread_join(pthread_t input_thread){
 }
 
 void * input_thread_run(void *data){
-    printf("thred rnning\n");
+    printf("input thred rnning\n");
     FILE *fp = ( FILE * )data;
     size_t buffer_length = 0;
     char *line_buffer = NULL, *save_ptr = NULL;
@@ -35,15 +36,17 @@ void * input_thread_run(void *data){
             // Enter a loop of trying to get access to the ready queue
             while ( 1 ){
                 if( !ready_locked ){
+                    if(IN_DEBUG)   printf("input wants ready lock\n");
                     // Get the ready queue mutex if this thread did not lock it
                     success = pthread_mutex_trylock( &ready_mutex );
                     // If successful lock, set the flag to say that this thread has 
                     // access to the ready queue
-                    if ( success )  ready_locked = 1;
+                    if ( success == 0 )  ready_locked = 1;
                 }
                 // If the ready queue is locked by this thread, then add to the 
                 // ready queue.
                 if ( ready_locked ){
+                    if(IN_DEBUG)   printf("input has ready queue lock\n");
                     // Get process priority, count, and burst time values after the "proc" token
                     proc_priority = atoi( strtok_r( NULL," ", &save_ptr ) );
                     proc_count = atoi( strtok_r( NULL," ", &save_ptr ) );
@@ -52,7 +55,10 @@ void * input_thread_run(void *data){
                     for ( int i = 0; i < proc_count; i++ ){
                         burst_times[i] = atoi( strtok_r( NULL," ", &save_ptr ) );
                     }
+                    if(IN_DEBUG)   printf("input add node. priority %d and process count %d\n",proc_priority,proc_count);
+                    // Add process to ready queue list
                     list_add( ready_queue, proc_priority, proc_count, burst_times );
+                    if(IN_DEBUG)   printf("input added node. priority %d and process count %d\n",proc_priority,proc_count);
                     // Break to leave the loop of trying to add the process
                     break;
                 }
@@ -62,28 +68,33 @@ void * input_thread_run(void *data){
         else if ( strcmp( token_first, "sleep") == 0 ) {
             // Release the ready queue mutex if this thread locked the queue
             if ( ready_locked ){
+                if(IN_DEBUG)   printf("input released ready queue lock to sleep\n");
                 pthread_mutex_unlock( &ready_mutex );
                 ready_locked = 0;
             }
             // Get sleep duration value after the "sleep" token
             sleep_duration = atoi( strtok_r( NULL," ", &save_ptr ) );
+            if(IN_DEBUG)   printf("input going to sleep for %d ms\n", sleep_duration);
             usleep( 1000 * sleep_duration );
         }
         // End of input
         else if ( strcmp( token_first, "stop") == 0 ){
             // Release the ready queue mutex if this thread locked the queue
             if ( ready_locked ){
+                if(IN_DEBUG)   printf("input thread released ready queue lock to exit\n");
                 pthread_mutex_unlock( &ready_mutex );
                 ready_locked = 0;
             }
+            // Global flag to let other threads know that there is no more input
+            input_finished = 1;
             break;
         }   
     }
 
-    list_print( ready_queue );
+    if(IN_DEBUG)   list_print( ready_queue );
 
     free( line_buffer );
-    printf( "thred done\n" );
+    if(IN_DEBUG)   printf( "input thred done\n" );
     return NULL;
 }
 

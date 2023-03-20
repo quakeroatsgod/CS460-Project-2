@@ -3,16 +3,16 @@ list_t *ready_queue;
 list_t *io_queue;
 pthread_mutex_t ready_mutex;
 pthread_mutex_t io_mutex;
+int input_finished, alg_type, quantum_time;
 
 // ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]
 int main(int argc, char **argv){
     // Variables 
-    int alg_type = 0;
     int arg_current_counter = 1;
-    int quantum_time = 0;
     FILE *fp = NULL;
     char *filename = NULL;
     pthread_t input_thread = 0, io_thread = 0, cpu_thread = 0;
+    input_finished = 0, alg_type = 0, quantum_time = 0;
 
     // No argument inputs
     // if ( argc < 2 ) {
@@ -46,21 +46,19 @@ int main(int argc, char **argv){
     ready_queue = list_init();
     io_queue = list_init();
 
-    pthread_mutex_init(&ready_mutex,NULL);
-    pthread_mutex_init(&io_mutex,NULL);
+    pthread_mutex_init( &ready_mutex,NULL );
+    pthread_mutex_init( &io_mutex,NULL );
 
     input_thread_init( &input_thread, fp );
     io_thread_init( &io_thread );
     cpu_thread_init( &cpu_thread );
 
-    usleep( 400000 );
+    // usleep( 400000 );
 
     input_thread_join( input_thread );
     io_thread_join( io_thread );
     cpu_thread_join( cpu_thread );
 
-    alg_type+=1;
-    quantum_time+=1;
     free( filename );
     fclose( fp );
     ready_queue->head=NULL; //Test for io_queue
