@@ -26,12 +26,12 @@ int cpu_thread_join(pthread_t cpu_thread){
 
 void * cpu_thread_run(void *data){
     if(C_DEBUG)   printf("cpu thred rnnin\n");
-    int ready_locked = 0, success = 0;
+    int ready_locked = 0, io_locked = 0, success = 0;
     lnode_t *node = NULL;
     // Loop over and over of checking the ready queue and seeing if there are processes to run
     while ( !input_finished || ready_queue->head != NULL ){
         if ( !ready_locked ) {
-            if(C_DEBUG)   printf("cpu wants lock\n");
+            if(C_DEBUG)   printf("cpu wants ready lock to get job\n");
             // Get the ready queue mutex if this thread did not lock it
             success = pthread_mutex_trylock( &ready_mutex );
             // If successful lock, set the flag to say that this thread has 
@@ -67,6 +67,7 @@ void * cpu_thread_run(void *data){
             }
             // Remove ready queue mutex lock after (maybe) getting a node 
             pthread_mutex_unlock( &ready_mutex );
+            ready_locked = 0;
             if(C_DEBUG)   printf("cpu released ready queue lock \n");
             // Sleep for length of quantum or CPU burst time
             if ( node != NULL ){
@@ -83,14 +84,38 @@ void * cpu_thread_run(void *data){
                 continue;
             }
             if(C_DEBUG)   printf("cpu pid %d has %d bursts left\n", node->pid, node->bursts_count - node->burst_indicator);
-            // Else, add process to I/O queue
+            // Else, add process to I/O queue after finishing CPU burst
             if ( node->burst_indicator % 2 == 1 ){
+                // Maybe wait to get io mutex
+                while ( !io_locked ){
+                    if(C_DEBUG)   printf("cpu wants io lock\n");
+                    // Try to get the io queue mutex and then perform the list insert
+                    success = pthread_mutex_trylock( &io_mutex );
+                    if ( success == 0 )  io_locked = 1;
+                }
                 list_insert( io_queue, node );
+                // Release io mutex and continue onto next process
+                io_locked = 0;
+                pthread_mutex_unlock( &io_mutex );
+                if(C_DEBUG)   printf("cpu released io lock\n");
+                continue;
             }
             // Add process back onto ready queue if using RR and the quantum time is up,
             // but NOT the CPU burst.
             if ( node->burst_indicator % 2 == 0 && alg_type == RR_ALG ){
+                // Maybe wait to get io mutex
+                while ( !ready_locked ){
+                    if(C_DEBUG)   printf("cpu wants ready lock to add process\n");
+                    // Try to get the io queue mutex and then perform the list insert
+                    success = pthread_mutex_trylock( &ready_mutex );
+                    if ( success == 0 )  ready_locked = 1;
+                }
                 list_insert( ready_queue, node );
+                // Release ready mutex and continue onto next process
+                ready_locked = 0;
+                pthread_mutex_unlock( &ready_mutex );
+                if(C_DEBUG)   printf("cpu released ready lock to add process\n");
+                continue;
             }
         }
     }
