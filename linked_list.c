@@ -11,7 +11,7 @@ list_t * list_init(){
 }
 
 // Creates a new linked list node by allocating space and giving it data 
-lnode_t * create_node(int priority, int bursts_count, int *burst_times){
+lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid){
     lnode_t *new_node = ( lnode_t * )malloc( sizeof( lnode_t ) );
     // Malloc failure
     if( new_node == NULL ){
@@ -22,6 +22,7 @@ lnode_t * create_node(int priority, int bursts_count, int *burst_times){
     new_node->priority = priority;
     new_node->bursts_count = bursts_count;
     new_node->burst_indicator = 0;
+    new_node->pid = pid;
     new_node->burst_times = burst_times;
     return new_node;
 }
@@ -95,10 +96,22 @@ lnode_t * list_pop(list_t *list){
     return popped_head;
 }
 
-// Adds a single node to the linked list
-list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times){
+// Pushes node to the head of the list. Only use this if you know
+// for sure that the node needs to be the HEAD, NOT the TAIL
+lnode_t * list_push_head(list_t *list, lnode_t *node){
+    lnode_t *old_head = list->head;
+    list->head = node;
+    list->tail->next = node;
+    list->head->previous = list->tail;
+    list->head->next = old_head;
+    old_head->previous = list->head;
+    return list->head;
+}
+
+// Adds a single node to the linked list by providing node information as parameters
+list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times, int pid){
     // Allocate space for and fill in the data for a node
-    lnode_t *new_node = create_node( priority, bursts_count, burst_times);
+    lnode_t *new_node = create_node( priority, bursts_count, burst_times, pid);
     // If the list is empty, make the node loop back to itself
     // The single node is both the head and tail
     if ( list->head == NULL && list->tail == NULL ){
@@ -118,13 +131,40 @@ list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times
     return list;
 }
 
+// Adds a single node to the linked list. There is no allocation, the node's
+// pointers are changed.
+list_t * list_insert(list_t *list, lnode_t *node){
+    // If the list is empty, make the node loop back to itself
+    // The single node is both the head and tail
+    if ( list->head == NULL && list->tail == NULL ){
+        node->next = node;
+        node->previous = node;
+        list->head = node;
+        list->tail = node;
+    }
+    // Else, add node to tail of list
+    else{ 
+        lnode_t *tail = list->tail;
+        tail->next = node;
+        node->previous = tail;
+        node->next = list->head;
+        list->tail = node;
+    }
+    return list;
+}
+
 // Prints out contents in a linked list
 int list_print(list_t *list){
     printf( "Printing out list contents:\n" );
+    if ( list->head == NULL && list->tail == NULL){
+        printf( "Empty list!\n" );
+        return 1;
+    }
     // Iterate through list nodes
     for ( lnode_t *ptr = list->head; ptr->next != list->head; ptr = ptr->next ){
+        if ( ptr == NULL )  return 0;
         // Print out priority and bursts remaining
-        printf( "Priority: %d, Bursts Remaining: %d, Bursts: ", ptr->priority, ptr->bursts_count );
+        printf( "Priority: %d, Burst count: %d, Burst indicator: %d, Bursts: ", ptr->priority, ptr->bursts_count, ptr->burst_indicator );
         // Don't segfault if there are no burst times for some reason
         if ( ptr->burst_times != NULL ){
             // Iterate through and print out burst times for the process
@@ -136,5 +176,6 @@ int list_print(list_t *list){
     }
     return 0;
 }
+
 
 // for ( lnode_t *ptr; ptr->next != list->head; ptr = ptr->next );

@@ -24,6 +24,7 @@ typedef struct _lnode_t    {
     int priority;
     int bursts_count;
     int burst_indicator;
+    int pid;
     int *burst_times;
     struct _lnode_t *previous;
     struct _lnode_t *next;
@@ -36,13 +37,14 @@ typedef struct _list_t {
 
 // Doubly-linked list
 list_t * list_init();
-list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times);
+list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times, int pid);
 int list_print(list_t *list);
 void free_list(list_t *list);
 lnode_t * list_pop(list_t *list);
+list_t * list_insert(list_t *list, lnode_t *node);
 
 // Node specific functions
-lnode_t * create_node(int priority, int bursts_count, int *burst_times);
+lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid);
 void * free_node(lnode_t *node);
 lnode_t * remove_node(list_t *list, lnode_t *node);
 
