@@ -13,12 +13,14 @@ int main(int argc, char **argv){
     char *filename = NULL;
     pthread_t input_thread = 0, io_thread = 0, cpu_thread = 0;
     input_finished = 0, alg_type = 0, quantum_time = 0;
+    struct timeval start, end;
+    float throughput = 0.0;
 
-    // No argument inputs
-    // if ( argc < 2 ) {
-    //     printf( "Error, usage: ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]\n");
-    //     return 1;
-    // }
+    //No argument inputs
+    if ( argc < 2 ) {
+        printf( "Error, usage: ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]\n");
+        return 1;
+    }
     // Algorithm option
     if ( strcmp(argv[1],"-alg") == 0 ) {
         if ( strcmp(argv[2],"FCFS") == 0 )     alg_type = FCFS_ALG;
@@ -54,14 +56,44 @@ int main(int argc, char **argv){
     cpu_thread_init( &cpu_thread );
 
     // usleep( 400000 );
-
+    gettimeofday(&start,NULL); //Start clock as threads start
     input_thread_join( input_thread );
     io_thread_join( io_thread );
     cpu_thread_join( cpu_thread );
-
+    gettimeofday(&end,NULL); //End clock once threads terminate
+    throughput = ((end.tv_usec-start.tv_usec)/1000)/input_finished; //Throughput = runtime/# of jobs
+    
+    ready_queue->head=NULL; //Test for io_queue
+    print_output(filename, throughput);
     free( filename );
     fclose( fp );
-    ready_queue->head=NULL; //Test for io_queue
-    //free_list(ready_queue); //Free the ready queue
     return 0;
+}
+
+void print_output(char *filename, float throughput){
+    char algo[5]="";
+    switch ( alg_type ){ //Assign algo based on alg_type
+        case FCFS_ALG:
+            strcpy(algo,"FCFS");
+            break;
+        case SJF_ALG:
+            strcpy(algo,"SJF");
+            break;
+        case PR_ALG:
+            strcpy(algo,"PR");
+            break;
+        case RR_ALG:
+            strcpy(algo,"RR");
+            break;
+    }
+    printf("%-32s: %s\n","Input File Name",filename); //Print File Name
+    if(strcmp(algo,"RR")==0){ //Print Round Robin with Quantum Time
+        printf("%-32s: %s %d\n","CPU Scheduling Alg",algo,quantum_time);
+    }
+    else{ //Print Algorithm Used
+        printf("%-32s: %s\n","CPU Scheduling Alg",algo);
+    }
+    printf("%-32s: %0.3f\n","Throughput",throughput); //Print Throughput
+    printf("%-32s: %s\n","Avg. Turnaround Time",filename);
+    printf("%-32s: %s\n","Avg. Waiting Time in Ready Queue",filename);
 }
