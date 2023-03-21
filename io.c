@@ -37,6 +37,11 @@ void * io_thread_run(void *data){
 
             }
         }
+        while ( !ready_locked ) {
+            // TODO delete this line. It's just so it can compile
+            success++;
+        }
+
     }
     if(IO_DEBUG)   printf("io thred done\n");
     return NULL;
