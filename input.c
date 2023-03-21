@@ -28,7 +28,7 @@ void * input_thread_run(void *data){
     size_t buffer_length = 0;
     char *line_buffer = NULL, *save_ptr = NULL;
     int sleep_duration = 0, proc_priority = 0, proc_count = 0, 
-    ready_locked = 0, success = 0, pid = 0;
+    ready_locked = 0, success = 0, pid = 0, jobs = 0;
     // Iterate through each line in the input file
     while ( getline( &line_buffer,&buffer_length,fp ) != -1 ){
         char *token_first = strtok_r (line_buffer," ", &save_ptr );
@@ -59,6 +59,7 @@ void * input_thread_run(void *data){
                     if(IN_DEBUG)   printf("input add node. priority %d and process count %d\n",proc_priority,proc_count);
                     // Add process to ready queue list
                     list_add( ready_queue, proc_priority, proc_count, burst_times, pid++ );
+                    jobs++;
                     if(IN_DEBUG)   printf("input added node. priority %d and process count %d\n",proc_priority,proc_count);
                     // Break to leave the loop of trying to add the process
                     break;
@@ -87,7 +88,7 @@ void * input_thread_run(void *data){
                 ready_locked = 0;
             }
             // Global flag to let other threads know that there is no more input
-            input_finished = 1;
+            input_finished = jobs;
             break;
         }   
     }

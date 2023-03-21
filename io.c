@@ -27,21 +27,32 @@ void * io_thread_run(void *data){
     if(IO_DEBUG)   printf("io thred rnnin\n");
     int ready_locked = 0, io_locked = 0, success = 0;
     while( !input_finished || ready_queue->head != NULL ){ //Repeat until there are no more jobs
-        // TODO lock io queue with mutex, then do IO stuff. Then unlock IO mutex,
-        // TODO then lock ready queue and push to ready queue
-        while ( !io_locked ) {
-            lnode_t *io_node = io_queue->head;
-            if( io_node != NULL ){
-                usleep(1000 * io_node->burst_times[io_node->burst_indicator]); //Sleep for indicated burst time
-                //TO DO: Remove node from io_queue and add it to ready queue, updating io_queue
-
+        if( !io_locked ){
+            if(IO_DEBUG) printf("io wants io lock\n");
+            success = pthread_mutex_trylock(&io_mutex); //Try to lock io queue
+            if(success == 0) io_locked = 1;
+        }
+        if( io_locked ){
+            if(IO_DEBUG) printf("io has io lock\n");
+            lnode_t *node = io_queue->head; //Get IO Node
+            pthread_mutex_unlock(&io_mutex); //Unlock mutex
+            if(IO_DEBUG) printf("io released io lock\n");
+            io_locked = 0;
+            if(node != NULL){
+                remove_node(io_queue,node); //Pop Node from front of IO queue
+                usleep(1000 * node->burst_times[node->burst_indicator]); //Sleep for indicated burst time
+                while(!ready_locked){
+                    if(IO_DEBUG) printf("io wants ready lock\n");
+                    success = pthread_mutex_trylock(&ready_mutex); //Try to lock ready queue
+                    if(success == 0) ready_locked = 1;
+                }
+                if(IO_DEBUG) printf("io has ready lock\n");
+                list_insert(ready_queue,node);
+                ready_locked = 0;
+                pthread_mutex_unlock(&ready_mutex);
+                if(IO_DEBUG) printf("io released ready lock\n");
             }
         }
-        while ( !ready_locked ) {
-            // TODO delete this line. It's just so it can compile
-            success++;
-        }
-
     }
     if(IO_DEBUG)   printf("io thred done\n");
     return NULL;

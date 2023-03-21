@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <errno.h> 
+#include <sys/time.h>
 
 #define FCFS_ALG 0
 #define SJF_ALG 1
@@ -15,7 +16,7 @@
 
 #define IN_DEBUG 0
 #define IO_DEBUG 0
-#define C_DEBUG 1
+#define C_DEBUG 0
 
 #pragma once 
 
@@ -69,3 +70,6 @@ lnode_t * cpu_burst_RR(lnode_t *node, int quantum);
 int io_thread_init(pthread_t *io_thread);
 int io_thread_join(pthread_t io_thread);
 void * io_thread_run(void *data);
+
+// Output
+void print_output(char *filename, float throughput);
