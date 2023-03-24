@@ -12,9 +12,9 @@ int main(int argc, char **argv){
     FILE *fp = NULL;
     char *filename = NULL;
     pthread_t input_thread = 0, io_thread = 0, cpu_thread = 0;
-    input_finished = 0, alg_type = 0, quantum_time = 0;
     struct timeval start, end;
     float throughput = 0.0;
+    input_finished = 0, alg_type = 0, quantum_time = 0;
 
     //No argument inputs
     if ( argc < 2 ) {
