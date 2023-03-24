@@ -7,6 +7,7 @@ extern pthread_mutex_t io_mutex;
 extern int input_finished;
 extern int alg_type;
 extern int quantum_time;
+
 // Starts up the CPU thread
 int cpu_thread_init(pthread_t *cpu_thread){    
     if ( 0 < pthread_create( cpu_thread, NULL, cpu_thread_run, NULL ) ){
@@ -27,6 +28,8 @@ int cpu_thread_join(pthread_t cpu_thread){
 void * cpu_thread_run(void *data){
     if(C_DEBUG)   printf("cpu thred rnnin\n");
     int ready_locked = 0, io_locked = 0, success = 0;
+    //struct timeval job_start, job_end; ADD BACK IN: I just couldn't have unused variables
+    //TODO: Use job_start and job_end to track job times
     lnode_t *node = NULL;
     // Loop over and over of checking the ready queue and seeing if there are processes to run
     while ( !input_finished || ready_queue->head != NULL ){
