@@ -7,6 +7,9 @@ extern pthread_mutex_t io_mutex;
 extern int input_finished;
 extern int alg_type;
 extern int quantum_time;
+extern int cpu_finished;
+extern int jobs_completed;
+extern int total_jobs;
 
 // Starts up the CPU thread
 int cpu_thread_init(pthread_t *cpu_thread){    
@@ -32,7 +35,7 @@ void * cpu_thread_run(void *data){
     //TODO: Use job_start and job_end to track job times
     lnode_t *node = NULL;
     // Loop over and over of checking the ready queue and seeing if there are processes to run
-    while ( !input_finished || ready_queue->head != NULL ){
+    while ( !input_finished || jobs_completed < total_jobs ){
         if ( !ready_locked ) {
             if(C_DEBUG)   printf("cpu wants ready lock to get job\n");
             // Get the ready queue mutex if this thread did not lock it
@@ -48,7 +51,6 @@ void * cpu_thread_run(void *data){
             if ( ready_queue->head != NULL ){
                 switch ( alg_type ){
                     case FCFS_ALG:
-                        list_print(ready_queue);
                         node = cpu_select_FCFS();
                         break;
                     case SJF_ALG:
@@ -88,7 +90,9 @@ void * cpu_thread_run(void *data){
             }
             if(C_DEBUG)   printf("cpu pid %d has %d bursts left\n", node->pid, node->bursts_count - node->burst_indicator);
             // Else, add process to I/O queue after finishing CPU burst
-            if ( node->burst_indicator % 2 == 1 ){
+            // if(C_DEBUG)   printf("cpu %d\n", node->burst_indicator % 2);
+            int current_burst = node->burst_indicator % 2;
+            if ( current_burst == 1 ){
                 // Maybe wait to get io mutex
                 while ( !io_locked ){
                     if(C_DEBUG)   printf("cpu wants io lock\n");
@@ -96,16 +100,18 @@ void * cpu_thread_run(void *data){
                     success = pthread_mutex_trylock( &io_mutex );
                     if ( success == 0 )  io_locked = 1;
                 }
+                if(C_DEBUG)   printf("cpu moving pid %d to io queue\n", node->pid);
                 list_insert( io_queue, node );
                 // Release io mutex and continue onto next process
                 io_locked = 0;
                 pthread_mutex_unlock( &io_mutex );
                 if(C_DEBUG)   printf("cpu released io lock\n");
+                node = NULL;
                 continue;
             }
             // Add process back onto ready queue if using RR and the quantum time is up,
             // but NOT the CPU burst.
-            if ( node->burst_indicator % 2 == 0 && alg_type == RR_ALG ){
+            else if ( current_burst == 0 && alg_type == RR_ALG ){
                 // Maybe wait to get io mutex
                 while ( !ready_locked ){
                     if(C_DEBUG)   printf("cpu wants ready lock to add process\n");
@@ -118,10 +124,14 @@ void * cpu_thread_run(void *data){
                 ready_locked = 0;
                 pthread_mutex_unlock( &ready_mutex );
                 if(C_DEBUG)   printf("cpu released ready lock to add process\n");
+                node = NULL;
                 continue;
             }
         }
+        node = NULL;
     }
+    // Set global flag to tell other threads that the cpu thread is done
+    cpu_finished = 1;
     if(C_DEBUG)   printf("cpu thred done\n");
     return NULL;
 }
@@ -168,11 +178,13 @@ lnode_t * cpu_select_RR(int quantum){
 // Perform CPU burst and update process node info
 lnode_t * cpu_burst_normal(lnode_t *node){
     // Sleep for length of CPU burst
-    usleep( 1000 * node->burst_times[node->burst_indicator ++]);
+    usleep( 1000 * node->burst_times[node->burst_indicator]);
     node->burst_indicator ++;
     // If process performed its last CPU burst, delete the process node
+    if (C_DEBUG)    printf( " cpu pid %d count %d current burst %d \n", node->pid, node->bursts_count, node->burst_indicator);
     if ( node->burst_indicator == node->bursts_count ){
-        if (C_DEBUG)    printf( "node %d is done bursting. Freeing it from memory\n", node->pid);
+        if (C_DEBUG)    printf( "NODE %d IS DONE BURSTING. FREEING IT FROM MEMORY\n", node->pid);
+        jobs_completed ++;
         return free_node( node );
     }
     // Return the node if there are more bursts to do
@@ -196,6 +208,7 @@ lnode_t * cpu_burst_RR(lnode_t *node, int quantum){
     // If process performed its last CPU burst, delete the process node
     if ( node->burst_indicator == node->bursts_count ){
         if (C_DEBUG)    printf( "node %d is done bursting. Freeing it from memory\n", node->pid);
+        jobs_completed ++;
         return free_node( node );
     }
     // Return the node if there are more bursts to do

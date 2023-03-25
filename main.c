@@ -3,10 +3,11 @@ list_t *ready_queue;
 list_t *io_queue;
 pthread_mutex_t ready_mutex;
 pthread_mutex_t io_mutex;
-int input_finished, alg_type, quantum_time;
+int input_finished, cpu_finished, jobs_completed, total_jobs, alg_type, quantum_time;
 
 // ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]
 int main(int argc, char **argv){
+    
     // Variables 
     int arg_current_counter = 1;
     FILE *fp = NULL;
@@ -14,7 +15,8 @@ int main(int argc, char **argv){
     pthread_t input_thread = 0, io_thread = 0, cpu_thread = 0;
     struct timeval start, end;
     float throughput = 0.0;
-    input_finished = 0, alg_type = 0, quantum_time = 0;
+    input_finished = 0, cpu_finished = 0, jobs_completed = 0, total_jobs = 1, alg_type = 0, quantum_time = 0;
+    gettimeofday(&start,NULL); //Start clock as threads start
 
     //No argument inputs
     if ( argc < 2 ) {
@@ -55,8 +57,6 @@ int main(int argc, char **argv){
     io_thread_init( &io_thread );
     cpu_thread_init( &cpu_thread );
 
-    // usleep( 400000 );
-    gettimeofday(&start,NULL); //Start clock as threads start
     input_thread_join( input_thread );
     io_thread_join( io_thread );
     cpu_thread_join( cpu_thread );

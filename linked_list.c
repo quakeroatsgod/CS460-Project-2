@@ -24,6 +24,8 @@ lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid)
     new_node->burst_indicator = 0;
     new_node->pid = pid;
     new_node->burst_times = burst_times;
+    new_node->next = NULL;
+    new_node->previous = NULL;
     return new_node;
 }
 
@@ -49,6 +51,10 @@ void free_list(list_t *list){
 
 // Removes a specific node from the list and returns it
 lnode_t * remove_node(list_t *list, lnode_t *node){
+    // If the removed node was the head
+    if ( node == list->head ){
+        return list_pop(list);
+    }
     // If there are no nodes remaining in the list, the head and tail become NULL
     if ( list->head == list->tail ){
         list->head = NULL;
@@ -56,14 +62,12 @@ lnode_t * remove_node(list_t *list, lnode_t *node){
     }
     node->previous->next = node->next;
     node->next->previous = node->previous;
-    // If the removed node was the head
-    if ( node == list->head ){
-        return list_pop(list);
-    }
     // If the removed node was the tail
     if ( node == list->tail ){
         list->tail = node->previous;
     }
+    node->previous = NULL;
+    node->next = NULL;
     return node;
 }
 
@@ -93,6 +97,8 @@ lnode_t * list_pop(list_t *list){
         // The tail points to the new head
         list->tail->next = list->head;
     }
+    popped_head->previous = NULL;
+    popped_head->next = NULL;
     return popped_head;
 }
 
@@ -164,7 +170,7 @@ int list_print(list_t *list){
     for ( lnode_t *ptr = list->head; ptr->next != list->head; ptr = ptr->next ){
         if ( ptr == NULL )  return 0;
         // Print out priority and bursts remaining
-        printf( "Priority: %d, Burst count: %d, Burst indicator: %d, Bursts: ", ptr->priority, ptr->bursts_count, ptr->burst_indicator );
+        printf( "Pid: %d, Priority: %d, Burst count: %d, Burst indicator: %d, Bursts: ", ptr->pid, ptr->priority, ptr->bursts_count, ptr->burst_indicator );
         // Don't segfault if there are no burst times for some reason
         if ( ptr->burst_times != NULL ){
             // Iterate through and print out burst times for the process

@@ -4,6 +4,8 @@ extern list_t *ready_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
 extern int input_finished;
+extern int jobs_completed;
+extern int total_jobs;
 
 // Starts up the input thread
 int input_thread_init(pthread_t *input_thread, FILE *fp){    
@@ -23,7 +25,7 @@ int input_thread_join(pthread_t input_thread){
 }
 
 void * input_thread_run(void *data){
-    printf("input thred rnning\n");
+    if(IN_DEBUG)    printf("input thred rnning\n");
     FILE *fp = ( FILE * )data;
     size_t buffer_length = 0;
     char *line_buffer = NULL, *save_ptr = NULL;
@@ -87,12 +89,12 @@ void * input_thread_run(void *data){
                 pthread_mutex_unlock( &ready_mutex );
                 ready_locked = 0;
             }
-            // Global flag to let other threads know that there is no more input
-            input_finished = jobs;
+            total_jobs = jobs;
             break;
         }   
     }
-
+    // Global flag to let other threads know that there is no more input
+    input_finished = 1;
     if(IN_DEBUG)   list_print( ready_queue );
 
     free( line_buffer );

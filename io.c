@@ -5,6 +5,9 @@ extern list_t *io_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
 extern int input_finished;
+extern int cpu_finished;
+extern int jobs_completed;
+extern int total_jobs;
 
 // Starts up the I/O thread
 int io_thread_init(pthread_t *io_thread){    
@@ -26,23 +29,27 @@ int io_thread_join(pthread_t io_thread){
 void * io_thread_run(void *data){
     if(IO_DEBUG)   printf("io thred rnnin\n");
     int ready_locked = 0, io_locked = 0, success = 0;
-    while( !input_finished || ready_queue->head != NULL ){ //Repeat until there are no more jobs
+    lnode_t *node = NULL;
+    while( !input_finished || !cpu_finished || jobs_completed < total_jobs ){ //Repeat until there are no more jobs
         if( !io_locked ){
-            if(IO_DEBUG) printf("io wants io lock\n");
+            // if(IO_DEBUG) printf("io wants io lock to check queue\n");
             success = pthread_mutex_trylock(&io_mutex); //Try to lock io queue
             if(success == 0) io_locked = 1;
         }
         if( io_locked ){
-            if(IO_DEBUG) printf("io has io lock\n");
-            lnode_t *node = io_queue->head; //Get IO Node
+            // if(IO_DEBUG) printf("io has io lock\n");
+            node = io_queue->head; //Get IO Node
+            if(node != NULL) list_pop(io_queue); //Pop Node from front of IO queue
             pthread_mutex_unlock(&io_mutex); //Unlock mutex
-            if(IO_DEBUG) printf("io released io lock\n");
+            // if(IO_DEBUG) printf("io released io lock\n");
             io_locked = 0;
             if(node != NULL){
-                remove_node(io_queue,node); //Pop Node from front of IO queue
-                usleep(1000 * node->burst_times[node->burst_indicator]); //Sleep for indicated burst time
+                if(IO_DEBUG) printf("io bursting on node pid %d for %d ms with b indicator %d \n", node->pid, node->burst_times[node->burst_indicator], node->burst_indicator);
+                // Only burst if on an IO burst
+                if ( node->burst_indicator % 2 == 1 ) 
+                    usleep(1000 * node->burst_times[node->burst_indicator++]); //Sleep for indicated burst time
                 while(!ready_locked){
-                    if(IO_DEBUG) printf("io wants ready lock\n");
+                    if(IO_DEBUG) printf("io wants ready lock to add node %d to queue\n", node->pid);
                     success = pthread_mutex_trylock(&ready_mutex); //Try to lock ready queue
                     if(success == 0) ready_locked = 1;
                 }
@@ -53,6 +60,7 @@ void * io_thread_run(void *data){
                 if(IO_DEBUG) printf("io released ready lock\n");
             }
         }
+        node = NULL;
     }
     if(IO_DEBUG)   printf("io thred done\n");
     return NULL;
