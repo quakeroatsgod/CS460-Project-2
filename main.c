@@ -13,10 +13,10 @@ int main(int argc, char **argv){
     FILE *fp = NULL;
     char *filename = NULL;
     pthread_t input_thread = 0, io_thread = 0, cpu_thread = 0;
-    struct timeval start, end;
+    // struct timeval start, end;
+    clock_t start = 0, end = 0;
     float throughput = 0.0;
     input_finished = 0, cpu_finished = 0, jobs_completed = 0, total_jobs = 1, alg_type = 0, quantum_time = 0;
-    gettimeofday(&start,NULL); //Start clock as threads start
 
     //No argument inputs
     if ( argc < 2 ) {
@@ -57,13 +57,15 @@ int main(int argc, char **argv){
     io_thread_init( &io_thread );
     cpu_thread_init( &cpu_thread );
 
+    // gettimeofday(&start,NULL); //Start clock as threads start
+    start = clock();
     input_thread_join( input_thread );
     io_thread_join( io_thread );
     cpu_thread_join( cpu_thread );
-    gettimeofday(&end,NULL); //End clock once threads terminate
-    throughput = ((end.tv_usec-start.tv_usec)/1000)/input_finished; //Throughput = runtime/# of jobs
-    
-    ready_queue->head=NULL; //Test for io_queue
+    // gettimeofday(&end,NULL); //End clock once threads terminate
+    // throughput = ((end.tv_usec-start.tv_usec)/1000)/input_finished; //Throughput = runtime/# of jobs
+    end = clock();
+    throughput = ( ( float ) ( end - start ) / CLOCKS_PER_SEC ) * 1000.0;
     print_output(filename, throughput);
     free( filename );
     fclose( fp );
