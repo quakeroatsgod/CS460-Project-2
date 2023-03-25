@@ -10,6 +10,7 @@ extern int quantum_time;
 extern int cpu_finished;
 extern int jobs_completed;
 extern int total_jobs;
+extern int total_wait_time;
 
 // Starts up the CPU thread
 int cpu_thread_init(pthread_t *cpu_thread){    
@@ -68,6 +69,7 @@ void * cpu_thread_run(void *data){
                     // After getting a node using some algorithm, remove it from the
                     // ready queue to move it to the I/O queue
                     remove_node(ready_queue, node);
+
                 }
             }
             // Remove ready queue mutex lock after (maybe) getting a node 
@@ -76,12 +78,11 @@ void * cpu_thread_run(void *data){
             if(C_DEBUG)   printf("cpu released ready queue lock \n");
             // Sleep for length of quantum or CPU burst time
             if ( node != NULL ){
-                if(C_DEBUG)   printf("cpu bursting for %d ms on pid %d\n", node->burst_times[node->burst_indicator], node->pid);
                 if ( alg_type != RR_ALG ){
                     node = cpu_burst_normal( node );
                 }
                 else
-                    node = cpu_burst_RR( node, quantum_time );
+                    node = cpu_burst_RR( node );
             }
             // If node was deleted from bursting, continue checking ready queue,
             // and don't do any of the stuff after this if statement
@@ -90,7 +91,6 @@ void * cpu_thread_run(void *data){
             }
             if(C_DEBUG)   printf("cpu pid %d has %d bursts left\n", node->pid, node->bursts_count - node->burst_indicator);
             // Else, add process to I/O queue after finishing CPU burst
-            // if(C_DEBUG)   printf("cpu %d\n", node->burst_indicator % 2);
             int current_burst = node->burst_indicator % 2;
             if ( current_burst == 1 ){
                 // Maybe wait to get io mutex
@@ -152,8 +152,16 @@ lnode_t * cpu_select_FCFS(){
 
 // Get a node from the ready queue based on SJR (Shortest Job First)
 lnode_t * cpu_select_SJF(){
-    lnode_t *node = NULL;
-    return node;
+    lnode_t *shortest_job_node = ready_queue->head;
+    // Iterate through ready queue and find process with shortest job
+    for ( lnode_t *ptr = ready_queue->head; ptr->next != ready_queue->head; ptr = ptr->next ){
+        // If the current node has a shorter next burst than the previous shortest,
+        // change that node to have the highest priority
+        if ( ptr->burst_times[ptr->burst_indicator] < shortest_job_node->burst_times[shortest_job_node->burst_indicator] ){
+            shortest_job_node = ptr;
+        }
+    }
+    return shortest_job_node;
 }
 
 // Get a node from the ready queue based on PR (Priority)
@@ -172,11 +180,12 @@ lnode_t * cpu_select_PR(){
 
 // Get a node from the ready queue based on RR (Round Robin)
 lnode_t * cpu_select_RR(int quantum){
-    lnode_t *node = NULL;
+    lnode_t *node = ready_queue->head;
     return node;
 }
 // Perform CPU burst and update process node info
 lnode_t * cpu_burst_normal(lnode_t *node){
+    if(C_DEBUG)   printf("cpu bursting for %d ms on pid %d\n", node->burst_times[node->burst_indicator], node->pid);
     // Sleep for length of CPU burst
     usleep( 1000 * node->burst_times[node->burst_indicator]);
     node->burst_indicator ++;
@@ -193,16 +202,16 @@ lnode_t * cpu_burst_normal(lnode_t *node){
 
 // Perform CPU burst and update process node info. The CPU burst time is
 // handled slightly differently for Round Robin (RR)
-lnode_t * cpu_burst_RR(lnode_t *node, int quantum){
-    int burst_time = quantum;
+lnode_t * cpu_burst_RR(lnode_t *node){
+    int burst_time = quantum_time;
     // If the remaining burst time is less than the quantum, use that time for
     // the CPU burst time.
-    if ( node->burst_times[node->burst_indicator] <= quantum )
+    if ( node->burst_times[node->burst_indicator] <= quantum_time )
         burst_time = node->burst_times[node->burst_indicator];
     // Sleep for length of CPU burst or quantum
     usleep( 1000 * burst_time );
     // Update burst indicator if the current CPU burst expired before the quantum
-    node->burst_times[node->burst_indicator] -= quantum;
+    node->burst_times[node->burst_indicator] -= burst_time;
     if ( node->burst_times[node->burst_indicator] <= 0 )
         node->burst_indicator ++;
     // If process performed its last CPU burst, delete the process node
@@ -213,4 +222,18 @@ lnode_t * cpu_burst_RR(lnode_t *node, int quantum){
     }
     // Return the node if there are more bursts to do
     return node;
+}
+
+int cpu_update_waiting(list_t *list, lnode_t *node){
+    int burst_time = node->burst_times[node->burst_indicator];
+    if ( alg_type == RR_ALG ){
+        burst_time = quantum_time;
+        if ( node->burst_times[node->burst_indicator] <= quantum_time )
+            burst_time = node->burst_times[node->burst_indicator];
+    }
+    if ( ready_queue->head == NULL )    return 1;
+    for ( lnode_t *ptr = ready_queue->head; ptr->next != ready_queue->head; ptr = ptr->next ){
+        total_wait_time += burst_time;
+    }
+    return 0;
 }

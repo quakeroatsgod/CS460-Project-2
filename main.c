@@ -4,7 +4,7 @@ list_t *io_queue;
 pthread_mutex_t ready_mutex;
 pthread_mutex_t io_mutex;
 int input_finished, cpu_finished, jobs_completed, total_jobs, alg_type, quantum_time;
-
+int total_wait_time, total_turnaround_time;
 // ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]
 int main(int argc, char **argv){
     
@@ -32,9 +32,9 @@ int main(int argc, char **argv){
         arg_current_counter = 3;
     }
     // Quantum option and time
-    if ( strcmp( argv[arg_current_counter],"-quantum" ) == 0 ){
-        quantum_time = atoi( argv[arg_current_counter] );
-        arg_current_counter += 2;
+    if ( strcmp( argv[arg_current_counter ++],"-quantum" ) == 0 ){
+        quantum_time = atoi( argv[arg_current_counter ] );
+        arg_current_counter ++;
     }
     // Input file option
     if ( strcmp( argv[arg_current_counter++],"-input" ) == 0 ){

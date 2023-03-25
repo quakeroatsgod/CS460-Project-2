@@ -14,7 +14,7 @@ pr:
 	./$(BINDIR)/exec -alg PR -quantum 2 -input input
 
 rr:
-	./$(BINDIR)/exec -alg RR -quantum 2 -input input
+	./$(BINDIR)/exec -alg RR -quantum 20 -input input
 
 sjf:
 	./$(BINDIR)/exec -alg SJF -quantum 2 -input input
