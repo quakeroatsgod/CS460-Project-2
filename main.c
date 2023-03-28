@@ -39,8 +39,8 @@ int main(int argc, char **argv){
     // Input file option
     if ( strcmp( argv[arg_current_counter++],"-input" ) == 0 ){
         fp = fopen( argv[arg_current_counter], "r" );
-        filename = ( char * )malloc(sizeof( char ) * strlen( argv[arg_current_counter] ) );
-        strcpy( filename, argv[arg_current_counter] );
+        // filename = ( char * )malloc(sizeof( char ) * strlen( argv[arg_current_counter] + ) );
+        // strcpy( filename, argv[arg_current_counter] );
         if ( fp == NULL ) {
             fprintf( stderr,"Error, cannot open: %s\n",filename );
             return 1;
@@ -66,8 +66,10 @@ int main(int argc, char **argv){
     // throughput = ((end.tv_usec-start.tv_usec)/1000)/input_finished; //Throughput = runtime/# of jobs
     end = clock();
     throughput = ( ( float ) ( end - start ) / CLOCKS_PER_SEC ) * 1000.0;
-    print_output(filename, throughput);
-    free( filename );
+    print_output(argv[arg_current_counter], throughput);
+    // free( filename );
+    free ( io_queue );
+    free ( ready_queue );
     fclose( fp );
     return 0;
 }
