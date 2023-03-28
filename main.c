@@ -95,7 +95,7 @@ void print_output(char *filename, float throughput){
     else{ //Print Algorithm Used
         printf("%-32s: %s\n","CPU Scheduling Alg",algo);
     }
-    printf("%-32s: %0.3f\n","Throughput",throughput); //Print Throughput
-    printf("%-32s: %s\n","Avg. Turnaround Time",filename);
-    printf("%-32s: %s\n","Avg. Waiting Time in Ready Queue",filename);
+    printf("%-32s: %0.3f\n","Throughput",( float ) total_jobs / throughput); //Print Throughput
+    printf("%-32s: %0.3f\n","Avg. Turnaround Time", ( float ) total_turnaround_time / total_jobs );
+    printf("%-32s: %0.3f\n","Avg. Waiting Time in Ready Queue", ( float ) total_wait_time / total_jobs );
 }

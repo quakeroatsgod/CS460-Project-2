@@ -66,6 +66,7 @@ lnode_t * cpu_select_PR();
 lnode_t * cpu_select_RR(int quantum);
 lnode_t * cpu_burst_normal(lnode_t *node);
 lnode_t * cpu_burst_RR(lnode_t *node );
+int cpu_update_waiting(list_t *list, lnode_t *node);
 
 // IO thread
 int io_thread_init(pthread_t *io_thread);
