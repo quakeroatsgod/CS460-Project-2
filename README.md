@@ -4,11 +4,8 @@
 - Cyrus Santiago
 ##  How you share data between parts of the program
 There are two doubly linked lists used to share data: a ready queue and an I/O queue named `ready_queue` and `io_queue` respectively. They are initialized in the main thread and used in the input, CPU, and I/O threads. There are also a number of global variables used such as:
-- `alg_type`: The type of algorithm used
-- `quantum_time`: The length of the quantum being used in Round Robin
 - `total_jobs`: The total number of processes logged by the input thread.
 - `jobs_completed`: The number of processes completed. It has no more bursts left.
-- `cpu_finished`: A flag to determine if the CPU thread has finished running.
 - `input_finished`: A flag to determine if the input thread has finished running.
 - `total_wait_time`: A counter to keep track of the wait time for processes on the ready queue.
 - `total_turnaround_time`: A counter to keep track of the turnaround time for processes on the ready queue.

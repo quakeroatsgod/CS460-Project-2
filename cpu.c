@@ -5,16 +5,14 @@ extern list_t *io_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
 extern int input_finished;
-extern int alg_type;
-extern int quantum_time;
 extern int cpu_finished;
 extern int jobs_completed;
 extern int total_jobs;
 extern float total_wait_time;
 extern float total_turnaround_time;
 // Starts up the CPU thread
-int cpu_thread_init(pthread_t *cpu_thread){    
-    if ( 0 < pthread_create( cpu_thread, NULL, cpu_thread_run, NULL ) ){
+int cpu_thread_init(pthread_t *cpu_thread, int *alg_and_quantum){    
+    if ( 0 < pthread_create( cpu_thread, NULL, cpu_thread_run, ( void * ) alg_and_quantum ) ){
         fprintf(stderr,"Error %d: %s\n", errno, strerror(errno));
         return 1;
     }
@@ -31,11 +29,15 @@ int cpu_thread_join(pthread_t cpu_thread){
 
 void * cpu_thread_run(void *data){
     if(C_DEBUG)   printf("cpu thred rnnin\n");
+    int *alg_and_quantum = ( int * ) data;
+    int quantum_time = alg_and_quantum[0], alg_type = alg_and_quantum[1];
     int ready_locked = 0, io_locked = 0, success = 0;
     //struct timeval job_start, job_end; ADD BACK IN: I just couldn't have unused variables
     //TODO: Use job_start and job_end to track job times
     clock_t timer=0;
     lnode_t *node = NULL;
+    // Get lock on input_finished flag, total_jobs and jobs_completed counts
+
     // Loop over and over of checking the ready queue and seeing if there are processes to run
     while ( !input_finished || jobs_completed < total_jobs ){
         if ( !ready_locked ) {
@@ -87,7 +89,7 @@ void * cpu_thread_run(void *data){
                     node = cpu_burst_normal( node );
                 }
                 else
-                    node = cpu_burst_RR( node );
+                    node = cpu_burst_RR( node, quantum_time );
             }
             // If node was deleted from bursting, continue checking ready queue,
             // and don't do any of the stuff after this if statement
@@ -212,7 +214,7 @@ lnode_t * cpu_burst_normal(lnode_t *node){
 
 // Perform CPU burst and update process node info. The CPU burst time is
 // handled slightly differently for Round Robin (RR)
-lnode_t * cpu_burst_RR(lnode_t *node){
+lnode_t * cpu_burst_RR(lnode_t *node, int quantum_time){
     int burst_time = quantum_time;
     // If the remaining burst time is less than the quantum, use that time for
     // the CPU burst time.
