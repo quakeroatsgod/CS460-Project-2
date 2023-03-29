@@ -77,3 +77,7 @@ void * io_thread_run(void *data);
 
 // Output
 void print_output(char *filename, float throughput);
+
+//Mutexes
+void set_global(pthread_mutex_t mutex, int value);
+int get_global(pthread_mutex_t mutex);

@@ -3,7 +3,7 @@ list_t *ready_queue;
 list_t *io_queue;
 pthread_mutex_t ready_mutex;
 pthread_mutex_t io_mutex;
-int input_finished, cpu_finished, jobs_completed, total_jobs, alg_type, quantum_time;
+int input_finished, jobs_completed, total_jobs, alg_type, quantum_time;
 float total_wait_time, total_turnaround_time;
 // ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]
 int main(int argc, char **argv){
@@ -16,7 +16,7 @@ int main(int argc, char **argv){
     // struct timeval start, end;
     clock_t start = 0, end = 0;
     float throughput = 0.0;
-    input_finished = 0, cpu_finished = 0, jobs_completed = 0, total_jobs = 1, alg_type = 0, quantum_time = 0;
+    input_finished = 0, jobs_completed = 0, total_jobs = 1, alg_type = 0, quantum_time = 0;
 
     //No argument inputs
     if ( argc < 2 ) {
@@ -100,4 +100,12 @@ void print_output(char *filename, float throughput){
     printf("%-32s: %0.3f\n","Throughput",( float ) total_jobs / throughput); //Print Throughput
     printf("%-32s: %0.3f\n","Avg. Turnaround Time", ( float ) total_turnaround_time / total_jobs );
     printf("%-32s: %0.3f\n","Avg. Waiting Time in Ready Queue", ( float ) total_wait_time / total_jobs );
+}
+
+void set_global(pthread_mutex_t mutex, int *value){
+
+}
+
+int get_global(pthread_mutex_t mutex, int *value){
+
 }

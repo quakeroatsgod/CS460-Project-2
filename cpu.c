@@ -7,7 +7,6 @@ extern pthread_mutex_t io_mutex;
 extern int input_finished;
 extern int alg_type;
 extern int quantum_time;
-extern int cpu_finished;
 extern int jobs_completed;
 extern int total_jobs;
 extern float total_wait_time;
@@ -137,7 +136,6 @@ void * cpu_thread_run(void *data){
         node = NULL;
     }
     // Set global flag to tell other threads that the cpu thread is done
-    cpu_finished = 1;
     if(C_DEBUG)   printf("cpu thred done\n");
     return NULL;
 }
