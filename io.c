@@ -54,6 +54,7 @@ void * io_thread_run(void *data){
                     if(success == 0) ready_locked = 1;
                 }
                 if(IO_DEBUG) printf("io has ready lock\n");
+                node->wait_began = clock();
                 list_insert(ready_queue,node);
                 ready_locked = 0;
                 pthread_mutex_unlock(&ready_mutex);

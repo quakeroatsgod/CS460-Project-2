@@ -27,7 +27,9 @@ typedef struct _lnode_t    {
     int burst_indicator;
     int pid;
     int *burst_times;
-    int time_waited;
+    float time_waited;
+    clock_t arrival_time;
+    clock_t wait_began;
     struct _lnode_t *previous;
     struct _lnode_t *next;
 }lnode_t;
@@ -39,14 +41,14 @@ typedef struct _list_t {
 
 // Doubly-linked list
 list_t * list_init();
-list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times, int pid);
+list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times, int pid, clock_t arrival_time);
 int list_print(list_t *list);
 void free_list(list_t *list);
 lnode_t * list_pop(list_t *list);
 list_t * list_insert(list_t *list, lnode_t *node);
 
 // Node specific functions
-lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid);
+lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid, clock_t arrival_time);
 void * free_node(lnode_t *node);
 lnode_t * remove_node(list_t *list, lnode_t *node);
 
@@ -66,7 +68,7 @@ lnode_t * cpu_select_PR();
 lnode_t * cpu_select_RR(int quantum);
 lnode_t * cpu_burst_normal(lnode_t *node);
 lnode_t * cpu_burst_RR(lnode_t *node );
-int cpu_update_waiting(list_t *list, lnode_t *node);
+int cpu_update_waiting(list_t *list, lnode_t *node, clock_t wait_time);
 
 // IO thread
 int io_thread_init(pthread_t *io_thread);
