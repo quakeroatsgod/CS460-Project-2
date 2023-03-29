@@ -10,8 +10,8 @@ extern int quantum_time;
 extern int cpu_finished;
 extern int jobs_completed;
 extern int total_jobs;
-extern int total_wait_time;
-extern int total_turnaround_time;
+extern float total_wait_time;
+extern float total_turnaround_time;
 // Starts up the CPU thread
 int cpu_thread_init(pthread_t *cpu_thread){    
     if ( 0 < pthread_create( cpu_thread, NULL, cpu_thread_run, NULL ) ){
@@ -34,6 +34,7 @@ void * cpu_thread_run(void *data){
     int ready_locked = 0, io_locked = 0, success = 0;
     //struct timeval job_start, job_end; ADD BACK IN: I just couldn't have unused variables
     //TODO: Use job_start and job_end to track job times
+    clock_t timer=0;
     lnode_t *node = NULL;
     // Loop over and over of checking the ready queue and seeing if there are processes to run
     while ( !input_finished || jobs_completed < total_jobs ){
@@ -67,7 +68,9 @@ void * cpu_thread_run(void *data){
                 if ( node != NULL ){
                     if(C_DEBUG)   printf("cpu got pid %d from ready queue\n", node->pid);
                     // Update waiting time for other nodes in ready queue
-                    cpu_update_waiting(ready_queue, node);
+                    timer = clock();
+                    node->time_waited += ((float) (timer - node->wait_began)/CLOCKS_PER_SEC)*1000;
+                    //cpu_update_waiting(ready_queue, node, timer);
                     // After getting a node using some algorithm, remove it from the
                     // ready queue to move it to the I/O queue
                     remove_node(ready_queue, node);
@@ -121,6 +124,7 @@ void * cpu_thread_run(void *data){
                     success = pthread_mutex_trylock( &ready_mutex );
                     if ( success == 0 )  ready_locked = 1;
                 }
+                node->wait_began = clock(); 
                 list_insert( ready_queue, node );
                 // Release ready mutex and continue onto next process
                 ready_locked = 0;
@@ -189,7 +193,7 @@ lnode_t * cpu_select_RR(int quantum){
 lnode_t * cpu_burst_normal(lnode_t *node){
     if(C_DEBUG)   printf("cpu bursting for %d ms on pid %d\n", node->burst_times[node->burst_indicator], node->pid);
     // Add burst time onto total turnaround time
-    total_turnaround_time += node->burst_times[node->burst_indicator];
+    //total_turnaround_time += node->burst_times[node->burst_indicator];
     // Sleep for length of CPU burst
     usleep( 1000 * node->burst_times[node->burst_indicator]);
     node->burst_indicator ++;
@@ -198,6 +202,8 @@ lnode_t * cpu_burst_normal(lnode_t *node){
     if ( node->burst_indicator == node->bursts_count ){
         if (C_DEBUG)    printf( "NODE %d IS DONE BURSTING. FREEING IT FROM MEMORY\n", node->pid);
         jobs_completed ++;
+        total_turnaround_time += ((float) (clock() - node->arrival_time)/CLOCKS_PER_SEC)*1000;
+        total_wait_time += node->time_waited;
         return free_node( node );
     }
     // Return the node if there are more bursts to do
@@ -213,7 +219,7 @@ lnode_t * cpu_burst_RR(lnode_t *node){
     if ( node->burst_times[node->burst_indicator] <= quantum_time )
         burst_time = node->burst_times[node->burst_indicator];
     // Add burst time onto total turnaround time
-    total_turnaround_time += burst_time;
+    //total_turnaround_time += burst_time;
     // Sleep for length of CPU burst or quantum
     usleep( 1000 * burst_time );
     // Update burst indicator if the current CPU burst expired before the quantum
@@ -224,6 +230,8 @@ lnode_t * cpu_burst_RR(lnode_t *node){
     if ( node->burst_indicator == node->bursts_count ){
         if (C_DEBUG)    printf( "node %d is done bursting. Freeing it from memory\n", node->pid);
         jobs_completed ++;
+        total_turnaround_time += ((float) (clock() - node->arrival_time)/CLOCKS_PER_SEC)*1000;
+        total_wait_time += node->time_waited;
         return free_node( node );
     }
     // Return the node if there are more bursts to do
@@ -231,21 +239,23 @@ lnode_t * cpu_burst_RR(lnode_t *node){
 }
 
 // Adds the CPU burst time for the current processes in the ready queue
-int cpu_update_waiting(list_t *list, lnode_t *node){
-    int burst_time = node->burst_times[node->burst_indicator];
-    if ( alg_type == RR_ALG ){
-        burst_time = quantum_time;
-        // If using the Round Robin algorithm and the remaining burst time is less
-        // than the quantum time, use that number instead
-        if ( node->burst_times[node->burst_indicator] <= quantum_time )
-            burst_time = node->burst_times[node->burst_indicator];
-    }
-    if ( ready_queue->head == NULL )    return 1;
-    // Iterate through the ready queue and update the waiting time and turnaround time for
-    // each node in the ready queue
-    for ( lnode_t *ptr = ready_queue->head; ptr->next != ready_queue->head; ptr = ptr->next ){
-        total_wait_time += burst_time;
-        total_turnaround_time += burst_time;
-    }
+int cpu_update_waiting(list_t *list, lnode_t *node, clock_t wait_time){
+    // int burst_time = node->burst_times[node->burst_indicator];
+    // if ( alg_type == RR_ALG ){
+    //     burst_time = quantum_time;
+    //     // If using the Round Robin algorithm and the remaining burst time is less
+    //     // than the quantum time, use that number instead
+    //     if ( node->burst_times[node->burst_indicator] <= quantum_time )
+    //         burst_time = node->burst_times[node->burst_indicator];
+    // }
+    // if ( ready_queue->head == NULL )    return 1;
+    // // Iterate through the ready queue and update the waiting time and turnaround time for
+    // // each node in the ready queue
+    // for ( lnode_t *ptr = ready_queue->head; ptr->next != ready_queue->head; ptr = ptr->next ){
+    //     total_wait_time += burst_time;
+    //     total_turnaround_time += burst_time;
+    // }
+    
+    node->wait_began = wait_time;
     return 0;
 }
