@@ -3,6 +3,7 @@ list_t *ready_queue;
 list_t *io_queue;
 pthread_mutex_t ready_mutex;
 pthread_mutex_t io_mutex;
+pthread_mutex_t in_fin_mutex, job_complete_mutex, tot_wait_mutex, tot_turn_mutex;
 int input_finished, jobs_completed, total_jobs, alg_type, quantum_time;
 float total_wait_time, total_turnaround_time;
 // ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]
@@ -10,6 +11,9 @@ int main(int argc, char **argv){
     
     // Variables 
     int arg_current_counter = 1;
+    // First element is the algorithm type, second is the quantum time
+    int *alg_and_quantum = ( int * ) malloc( sizeof( int ) * 2 ); 
+    alg_and_quantum[0] =  0, alg_and_quantum[1] = 0;
     FILE *fp = NULL;
     char *filename = NULL;
     pthread_t input_thread = 0, io_thread = 0, cpu_thread = 0;
@@ -25,15 +29,15 @@ int main(int argc, char **argv){
     }
     // Algorithm option
     if ( strcmp(argv[1],"-alg") == 0 ) {
-        if ( strcmp(argv[2],"FCFS") == 0 )     alg_type = FCFS_ALG;
-        else if ( strcmp(argv[2],"SJF") == 0 )     alg_type = SJF_ALG;
-        else if ( strcmp(argv[2],"PR") == 0 )     alg_type = PR_ALG;
-        else if ( strcmp(argv[2],"RR") == 0 )     alg_type = RR_ALG;
+        if ( strcmp(argv[2],"FCFS") == 0 )     alg_and_quantum[0] = FCFS_ALG;
+        else if ( strcmp(argv[2],"SJF") == 0 )     alg_and_quantum[0] = SJF_ALG;
+        else if ( strcmp(argv[2],"PR") == 0 )     alg_and_quantum[0] = PR_ALG;
+        else if ( strcmp(argv[2],"RR") == 0 )     alg_and_quantum[0] = RR_ALG;
         arg_current_counter = 3;
     }
     // Quantum option and time
     if ( strcmp( argv[arg_current_counter],"-quantum" ) == 0 ){
-        quantum_time = atoi( argv[arg_current_counter+1] );
+        alg_and_quantum[1] = atoi( argv[arg_current_counter+1] );
         arg_current_counter += 2;
     }
     // Input file option
@@ -55,7 +59,7 @@ int main(int argc, char **argv){
 
     input_thread_init( &input_thread, fp );
     io_thread_init( &io_thread );
-    cpu_thread_init( &cpu_thread );
+    cpu_thread_init( &cpu_thread, alg_and_quantum );
 
     // gettimeofday(&start,NULL); //Start clock as threads start
     start = clock();
@@ -66,15 +70,16 @@ int main(int argc, char **argv){
     // throughput = ((end.tv_usec-start.tv_usec)/1000)/input_finished; //Throughput = runtime/# of jobs
     end = clock();
     throughput = ( ( float ) ( end - start ) / CLOCKS_PER_SEC ) * 1000.0;
-    print_output(argv[arg_current_counter], throughput);
+    print_output(argv[arg_current_counter], throughput, alg_and_quantum[0], alg_and_quantum[1]);
     // free( filename );
     free ( io_queue );
     free ( ready_queue );
     fclose( fp );
+    free( alg_and_quantum );
     return 0;
 }
 
-void print_output(char *filename, float throughput){
+void print_output(char *filename, float throughput, int alg_type, int quantum_time){
     char algo[5]="";
     switch ( alg_type ){ //Assign algo based on alg_type
         case FCFS_ALG:
@@ -102,10 +107,22 @@ void print_output(char *filename, float throughput){
     printf("%-32s: %0.3f\n","Avg. Waiting Time in Ready Queue", ( float ) total_wait_time / total_jobs );
 }
 
-void set_global(pthread_mutex_t mutex, int *value){
-
+void set_global(pthread_mutex_t mutex, int *value, int newVal){
+    int waiting=1, success=0;
+    while(waiting){
+        success = pthread_mutex_trylock(&mutex);
+        if(success==0) waiting = 0;
+    }
+    *value = newVal;
+    pthread_mutex_unlock(&mutex);
 }
 
-int get_global(pthread_mutex_t mutex, int *value){
-
+void set_global_f(pthread_mutex_t mutex, float *value, float newVal){
+    int waiting=1, success=0;
+    while(waiting){
+        success = pthread_mutex_trylock(&mutex);
+        if(success==0) waiting = 0;
+    }
+    *value = newVal;
+    pthread_mutex_unlock(&mutex);
 }

@@ -5,7 +5,6 @@ extern list_t *io_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
 extern int input_finished;
-extern int cpu_finished;
 extern int jobs_completed;
 extern int total_jobs;
 
@@ -30,7 +29,7 @@ void * io_thread_run(void *data){
     if(IO_DEBUG)   printf("io thred rnnin\n");
     int ready_locked = 0, io_locked = 0, success = 0;
     lnode_t *node = NULL;
-    while( !input_finished || !cpu_finished || jobs_completed < total_jobs ){ //Repeat until there are no more jobs
+    while( !input_finished || jobs_completed < total_jobs ){ //Repeat until there are no more jobs
         if( !io_locked ){
             // if(IO_DEBUG) printf("io wants io lock to check queue\n");
             success = pthread_mutex_trylock(&io_mutex); //Try to lock io queue

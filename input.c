@@ -3,8 +3,8 @@
 extern list_t *ready_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
+extern pthread_mutex_t in_fin_mutex;
 extern int input_finished;
-extern int jobs_completed;
 extern int total_jobs;
 
 // Starts up the input thread
@@ -96,7 +96,8 @@ void * input_thread_run(void *data){
         }   
     }
     // Global flag to let other threads know that there is no more input
-    input_finished = 1;
+    //input_finished = 1;
+    set_global(in_fin_mutex,&input_finished,1);
     if(IN_DEBUG)   list_print( ready_queue );
 
     free( line_buffer );

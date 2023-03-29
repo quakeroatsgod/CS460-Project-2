@@ -4,16 +4,15 @@ extern list_t *ready_queue;
 extern list_t *io_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
+extern pthread_mutex_t job_complete_mutex, tot_wait_mutex, tot_turn_mutex;
 extern int input_finished;
-extern int alg_type;
-extern int quantum_time;
 extern int jobs_completed;
 extern int total_jobs;
 extern float total_wait_time;
 extern float total_turnaround_time;
 // Starts up the CPU thread
-int cpu_thread_init(pthread_t *cpu_thread){    
-    if ( 0 < pthread_create( cpu_thread, NULL, cpu_thread_run, NULL ) ){
+int cpu_thread_init(pthread_t *cpu_thread, int *alg_and_quantum){    
+    if ( 0 < pthread_create( cpu_thread, NULL, cpu_thread_run, ( void * ) alg_and_quantum ) ){
         fprintf(stderr,"Error %d: %s\n", errno, strerror(errno));
         return 1;
     }
@@ -30,11 +29,16 @@ int cpu_thread_join(pthread_t cpu_thread){
 
 void * cpu_thread_run(void *data){
     if(C_DEBUG)   printf("cpu thred rnnin\n");
+    int *alg_and_quantum = ( int * ) data;
+    int alg_type = alg_and_quantum[0], quantum_time = alg_and_quantum[1];
+    //printf("%d, %d\n",quantum_time,alg_type);
     int ready_locked = 0, io_locked = 0, success = 0;
     //struct timeval job_start, job_end; ADD BACK IN: I just couldn't have unused variables
     //TODO: Use job_start and job_end to track job times
     clock_t timer=0;
     lnode_t *node = NULL;
+    // Get lock on input_finished flag, total_jobs and jobs_completed counts
+
     // Loop over and over of checking the ready queue and seeing if there are processes to run
     while ( !input_finished || jobs_completed < total_jobs ){
         if ( !ready_locked ) {
@@ -86,7 +90,7 @@ void * cpu_thread_run(void *data){
                     node = cpu_burst_normal( node );
                 }
                 else
-                    node = cpu_burst_RR( node );
+                    node = cpu_burst_RR( node, quantum_time );
             }
             // If node was deleted from bursting, continue checking ready queue,
             // and don't do any of the stuff after this if statement
@@ -199,9 +203,13 @@ lnode_t * cpu_burst_normal(lnode_t *node){
     if (C_DEBUG)    printf( " cpu pid %d count %d current burst %d \n", node->pid, node->bursts_count, node->burst_indicator);
     if ( node->burst_indicator == node->bursts_count ){
         if (C_DEBUG)    printf( "NODE %d IS DONE BURSTING. FREEING IT FROM MEMORY\n", node->pid);
-        jobs_completed ++;
-        total_turnaround_time += ((float) (clock() - node->arrival_time)/CLOCKS_PER_SEC)*1000;
-        total_wait_time += node->time_waited;
+        //jobs_completed ++;
+        set_global(job_complete_mutex,&jobs_completed,jobs_completed+1);
+        //total_turnaround_time += ((float) (clock() - node->arrival_time)/CLOCKS_PER_SEC)*1000;
+        int turnaround_time = ((float) (clock() - node->arrival_time)/CLOCKS_PER_SEC)*1000;
+        set_global_f(tot_turn_mutex,&total_turnaround_time,total_turnaround_time + turnaround_time);
+        //total_wait_time += node->time_waited;
+        set_global_f(tot_wait_mutex,&total_wait_time,total_wait_time+node->time_waited);
         return free_node( node );
     }
     // Return the node if there are more bursts to do
@@ -210,7 +218,7 @@ lnode_t * cpu_burst_normal(lnode_t *node){
 
 // Perform CPU burst and update process node info. The CPU burst time is
 // handled slightly differently for Round Robin (RR)
-lnode_t * cpu_burst_RR(lnode_t *node){
+lnode_t * cpu_burst_RR(lnode_t *node, int quantum_time){
     int burst_time = quantum_time;
     // If the remaining burst time is less than the quantum, use that time for
     // the CPU burst time.
@@ -227,9 +235,13 @@ lnode_t * cpu_burst_RR(lnode_t *node){
     // If process performed its last CPU burst, delete the process node
     if ( node->burst_indicator == node->bursts_count ){
         if (C_DEBUG)    printf( "node %d is done bursting. Freeing it from memory\n", node->pid);
-        jobs_completed ++;
-        total_turnaround_time += ((float) (clock() - node->arrival_time)/CLOCKS_PER_SEC)*1000;
-        total_wait_time += node->time_waited;
+        //jobs_completed ++;
+        set_global(job_complete_mutex,&jobs_completed,jobs_completed+1);
+        //total_turnaround_time += ((float) (clock() - node->arrival_time)/CLOCKS_PER_SEC)*1000;
+        int turnaround_time = ((float) (clock() - node->arrival_time)/CLOCKS_PER_SEC)*1000;
+        set_global_f(tot_turn_mutex,&total_turnaround_time,total_turnaround_time + turnaround_time);
+        //total_wait_time += node->time_waited;
+        set_global_f(tot_wait_mutex,&total_wait_time,total_wait_time+node->time_waited);
         return free_node( node );
     }
     // Return the node if there are more bursts to do

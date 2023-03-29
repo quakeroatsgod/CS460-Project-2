@@ -59,7 +59,7 @@ void * input_thread_run(void *data);
 int get_next_int( char *save_ptr );
 
 // CPU thread
-int cpu_thread_init(pthread_t *cpu_thread);
+int cpu_thread_init(pthread_t *cpu_thread, int *alg_and_quantum);
 int cpu_thread_join(pthread_t cpu_thread);
 void * cpu_thread_run(void *data);
 lnode_t * cpu_select_FCFS();
@@ -67,7 +67,7 @@ lnode_t * cpu_select_SJF();
 lnode_t * cpu_select_PR();
 lnode_t * cpu_select_RR(int quantum);
 lnode_t * cpu_burst_normal(lnode_t *node);
-lnode_t * cpu_burst_RR(lnode_t *node );
+lnode_t * cpu_burst_RR(lnode_t *node, int quantum_time );
 int cpu_update_waiting(list_t *list, lnode_t *node, clock_t wait_time);
 
 // IO thread
@@ -76,8 +76,8 @@ int io_thread_join(pthread_t io_thread);
 void * io_thread_run(void *data);
 
 // Output
-void print_output(char *filename, float throughput);
+void print_output(char *filename, float throughput, int alg_type, int quantum_time);
 
 //Mutexes
-void set_global(pthread_mutex_t mutex, int value);
-int get_global(pthread_mutex_t mutex);
+void set_global(pthread_mutex_t mutex, int *value, int newVal);
+void set_global_f(pthread_mutex_t mutex, float *value, float newVal);
