@@ -11,7 +11,7 @@ list_t * list_init(){
 }
 
 // Creates a new linked list node by allocating space and giving it data 
-lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid, clock_t arrival_time){
+lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid, struct timeval arrival_time){
     lnode_t *new_node = ( lnode_t * )malloc( sizeof( lnode_t ) );
     // Malloc failure
     if( new_node == NULL ){
@@ -118,7 +118,7 @@ lnode_t * list_push_head(list_t *list, lnode_t *node){
 }
 
 // Adds a single node to the linked list by providing node information as parameters
-list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times, int pid, clock_t arrival_time){
+list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times, int pid, struct timeval arrival_time){
     // Allocate space for and fill in the data for a node
     lnode_t *new_node = create_node( priority, bursts_count, burst_times, pid, arrival_time);
     // If the list is empty, make the node loop back to itself

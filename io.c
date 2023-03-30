@@ -4,6 +4,7 @@ extern list_t *ready_queue;
 extern list_t *io_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
+extern pthread_mutex_t in_fin_mutex, tot_job_mutex, job_complete_mutex;
 extern int input_finished;
 extern int jobs_completed;
 extern int total_jobs;
@@ -29,7 +30,7 @@ void * io_thread_run(void *data){
     if(IO_DEBUG)   printf("io thred rnnin\n");
     int ready_locked = 0, io_locked = 0, success = 0;
     lnode_t *node = NULL;
-    while( !input_finished || jobs_completed < total_jobs ){ //Repeat until there are no more jobs
+    while( !get_global(in_fin_mutex,INPUT_FINISHED) || jobs_completed < get_global(tot_job_mutex,TOTAL_JOBS) ){ //Repeat until there are no more jobs
         if( !io_locked ){
             // if(IO_DEBUG) printf("io wants io lock to check queue\n");
             success = pthread_mutex_trylock(&io_mutex); //Try to lock io queue
@@ -53,7 +54,7 @@ void * io_thread_run(void *data){
                     if(success == 0) ready_locked = 1;
                 }
                 if(IO_DEBUG) printf("io has ready lock\n");
-                node->wait_began = clock();
+                gettimeofday(&node->wait_began,NULL);
                 list_insert(ready_queue,node);
                 ready_locked = 0;
                 pthread_mutex_unlock(&ready_mutex);

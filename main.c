@@ -3,9 +3,9 @@ list_t *ready_queue;
 list_t *io_queue;
 pthread_mutex_t ready_mutex;
 pthread_mutex_t io_mutex;
-pthread_mutex_t in_fin_mutex, job_complete_mutex, tot_wait_mutex, tot_turn_mutex;
+pthread_mutex_t in_fin_mutex, tot_job_mutex, job_complete_mutex, tot_wait_mutex, tot_turn_mutex;
 int input_finished, jobs_completed, total_jobs, alg_type, quantum_time;
-float total_wait_time, total_turnaround_time;
+double total_wait_time, total_turnaround_time;
 // ./exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]
 int main(int argc, char **argv){
     
@@ -17,8 +17,7 @@ int main(int argc, char **argv){
     FILE *fp = NULL;
     char *filename = NULL;
     pthread_t input_thread = 0, io_thread = 0, cpu_thread = 0;
-    // struct timeval start, end;
-    clock_t start = 0, end = 0;
+    struct timeval start, end;
     float throughput = 0.0;
     input_finished = 0, jobs_completed = 0, total_jobs = 1, alg_type = 0, quantum_time = 0;
 
@@ -62,14 +61,14 @@ int main(int argc, char **argv){
     cpu_thread_init( &cpu_thread, alg_and_quantum );
 
     // gettimeofday(&start,NULL); //Start clock as threads start
-    start = clock();
+    gettimeofday(&start, NULL);
     input_thread_join( input_thread );
     io_thread_join( io_thread );
     cpu_thread_join( cpu_thread );
     // gettimeofday(&end,NULL); //End clock once threads terminate
     // throughput = ((end.tv_usec-start.tv_usec)/1000)/input_finished; //Throughput = runtime/# of jobs
-    end = clock();
-    throughput = ( ( float ) ( end - start ) / CLOCKS_PER_SEC ) * 1000.0;
+    gettimeofday(&end, NULL);
+    throughput = time_in_ms(start,end);
     print_output(argv[arg_current_counter], throughput, alg_and_quantum[0], alg_and_quantum[1]);
     // free( filename );
     free ( io_queue );
@@ -103,26 +102,86 @@ void print_output(char *filename, float throughput, int alg_type, int quantum_ti
         printf("%-32s: %s\n","CPU Scheduling Alg",algo);
     }
     printf("%-32s: %0.3f\n","Throughput",( float ) total_jobs / throughput); //Print Throughput
-    printf("%-32s: %0.3f\n","Avg. Turnaround Time", ( float ) total_turnaround_time / total_jobs );
-    printf("%-32s: %0.3f\n","Avg. Waiting Time in Ready Queue", ( float ) total_wait_time / total_jobs );
+    printf("%-32s: %0.1f\n","Avg. Turnaround Time", ( float ) total_turnaround_time / total_jobs );
+    printf("%-32s: %0.1f\n","Avg. Waiting Time in Ready Queue", ( float ) total_wait_time / total_jobs );
 }
 
-void set_global(pthread_mutex_t mutex, int *value, int newVal){
-    int waiting=1, success=0;
-    while(waiting){
-        success = pthread_mutex_trylock(&mutex);
-        if(success==0) waiting = 0;
-    }
-    *value = newVal;
-    pthread_mutex_unlock(&mutex);
+double time_in_ms(struct timeval start, struct timeval end){
+    return ( ( double ) ( end.tv_sec - start.tv_sec )*1e3 + 1e-3*(end.tv_usec - start.tv_usec));
 }
 
-void set_global_f(pthread_mutex_t mutex, float *value, float newVal){
-    int waiting=1, success=0;
-    while(waiting){
-        success = pthread_mutex_trylock(&mutex);
-        if(success==0) waiting = 0;
+struct timeval get_time(){
+    struct timeval time;
+    gettimeofday(&time,NULL);
+    return time;
+}
+
+void set_global(pthread_mutex_t mutex, void *value, void *newVal,  int caseVal){
+    int waiting = 0, success = 0;
+    switch (caseVal)
+    {
+    case INPUT_FINISHED:
+        while(waiting){
+            success = pthread_mutex_trylock(&mutex);
+            if(success==0) waiting = 0;
+        }
+        *(int*)value = *(int*) newVal;
+        pthread_mutex_unlock(&mutex);
+        break;
+    case TOTAL_JOBS:
+        while(waiting){
+            success = pthread_mutex_trylock(&mutex);
+            if(success==0) waiting = 0;
+        }
+        *(int*)value = *(int*) newVal;
+        pthread_mutex_unlock(&mutex);
+        break;
+    case TOTAL_WAIT:
+        while(waiting){
+            success = pthread_mutex_trylock(&mutex);
+            if(success==0) waiting = 0;
+        }
+        *(double*)value = *(double*) newVal;
+        pthread_mutex_unlock(&mutex);
+        break;
+    case TOTAL_TURN:
+        while(waiting){
+            success = pthread_mutex_trylock(&mutex);
+            if(success==0) waiting = 0;
+        }
+        *(double*)value = *(double*) newVal;
+        pthread_mutex_unlock(&mutex);
+        break;
+    case JOBS_COMPLETE:
+        while(waiting){
+            success = pthread_mutex_trylock(&mutex);
+            if(success==0) waiting = 0;
+        }
+        *(int*)value = *(int*) newVal;
+        pthread_mutex_unlock(&mutex);
+        break;
     }
-    *value = newVal;
-    pthread_mutex_unlock(&mutex);
+}
+int get_global(pthread_mutex_t mutex, int caseVal){
+    int waiting = 1, success = 0, result = 0;
+    switch (caseVal)
+    {
+    case INPUT_FINISHED:
+        while(waiting){
+            success = pthread_mutex_trylock(&mutex);
+            if(success==0) waiting = 0;
+        }
+        result = input_finished;
+        pthread_mutex_unlock(&mutex);
+        break;
+    case TOTAL_JOBS:
+        while(waiting){
+            success = pthread_mutex_trylock(&mutex);
+            if(success==0) waiting = 0;
+        }
+        result = total_jobs;
+        pthread_mutex_unlock(&mutex);
+        break;
+    }
+    return result;
 }

@@ -28,7 +28,7 @@ void * input_thread_run(void *data){
     if(IN_DEBUG)    printf("input thred rnning\n");
     FILE *fp = ( FILE * )data;
     size_t buffer_length = 0;
-    clock_t arr_time=0;
+    struct timeval arr_time;
     char *line_buffer = NULL, *save_ptr = NULL;
     int sleep_duration = 0, proc_priority = 0, proc_count = 0, 
     ready_locked = 0, success = 0, pid = 0, jobs = 0;
@@ -61,7 +61,7 @@ void * input_thread_run(void *data){
                     }
                     if(IN_DEBUG)   printf("input add node. priority %d and process count %d\n",proc_priority,proc_count);
                     // Add process to ready queue list
-                    arr_time = clock();
+                    gettimeofday(&arr_time, NULL);
                     list_add( ready_queue, proc_priority, proc_count, burst_times, pid++, arr_time);
                     jobs++;
                     if(IN_DEBUG)   printf("input added node. priority %d and process count %d\n",proc_priority,proc_count);
@@ -96,8 +96,8 @@ void * input_thread_run(void *data){
         }   
     }
     // Global flag to let other threads know that there is no more input
-    //input_finished = 1;
-    set_global(in_fin_mutex,&input_finished,1);
+    int new_value = 1;
+    set_global(in_fin_mutex,&input_finished,&new_value,INPUT_FINISHED);
     if(IN_DEBUG)   list_print( ready_queue );
 
     free( line_buffer );

@@ -14,6 +14,12 @@
 #define PR_ALG 2
 #define RR_ALG 3
 
+#define INPUT_FINISHED 0
+#define TOTAL_JOBS 1
+#define TOTAL_WAIT 2
+#define TOTAL_TURN 3
+#define JOBS_COMPLETE 4
+
 #define IN_DEBUG 0
 #define IO_DEBUG 0
 #define C_DEBUG 0
@@ -27,9 +33,9 @@ typedef struct _lnode_t    {
     int burst_indicator;
     int pid;
     int *burst_times;
-    float time_waited;
-    clock_t arrival_time;
-    clock_t wait_began;
+    double time_waited;
+    struct timeval arrival_time;
+    struct timeval wait_began;
     struct _lnode_t *previous;
     struct _lnode_t *next;
 }lnode_t;
@@ -41,14 +47,14 @@ typedef struct _list_t {
 
 // Doubly-linked list
 list_t * list_init();
-list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times, int pid, clock_t arrival_time);
+list_t * list_add(list_t *list, int priority, int bursts_count, int *burst_times, int pid, struct timeval arrival_time);
 int list_print(list_t *list);
 void free_list(list_t *list);
 lnode_t * list_pop(list_t *list);
 list_t * list_insert(list_t *list, lnode_t *node);
 
 // Node specific functions
-lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid, clock_t arrival_time);
+lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid, struct timeval arrival_time);
 void * free_node(lnode_t *node);
 lnode_t * remove_node(list_t *list, lnode_t *node);
 
@@ -68,7 +74,7 @@ lnode_t * cpu_select_PR();
 lnode_t * cpu_select_RR(int quantum);
 lnode_t * cpu_burst_normal(lnode_t *node);
 lnode_t * cpu_burst_RR(lnode_t *node, int quantum_time );
-int cpu_update_waiting(list_t *list, lnode_t *node, clock_t wait_time);
+int cpu_update_waiting(list_t *list, lnode_t *node, struct timeval wait_time);
 
 // IO thread
 int io_thread_init(pthread_t *io_thread);
@@ -77,7 +83,9 @@ void * io_thread_run(void *data);
 
 // Output
 void print_output(char *filename, float throughput, int alg_type, int quantum_time);
+double time_in_ms(struct timeval start, struct timeval end);
+struct timeval get_time();
 
 //Mutexes
-void set_global(pthread_mutex_t mutex, int *value, int newVal);
-void set_global_f(pthread_mutex_t mutex, float *value, float newVal);
+void set_global(pthread_mutex_t mutex, void *value, void *newVal, int caseVal);
+int get_global(pthread_mutex_t mutex, int caseVal);
