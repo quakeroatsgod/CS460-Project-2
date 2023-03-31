@@ -4,6 +4,7 @@ extern list_t *ready_queue;
 extern pthread_mutex_t ready_mutex;
 extern pthread_mutex_t io_mutex;
 extern pthread_mutex_t in_fin_mutex;
+extern pthread_mutex_t tot_job_mutex;
 extern int input_finished;
 extern int total_jobs;
 
@@ -31,7 +32,7 @@ void * input_thread_run(void *data){
     struct timeval arr_time;
     char *line_buffer = NULL, *save_ptr = NULL;
     int sleep_duration = 0, proc_priority = 0, proc_count = 0, 
-    ready_locked = 0, success = 0, pid = 0, jobs = 0;
+    ready_locked = 0, success = 0, pid = 0, jobs = 0, waiting = 1;
     // Iterate through each line in the input file
     while ( getline( &line_buffer,&buffer_length,fp ) != -1 ){
         char *token_first = strtok_r (line_buffer," ", &save_ptr );
@@ -91,23 +92,28 @@ void * input_thread_run(void *data){
                 pthread_mutex_unlock( &ready_mutex );
                 ready_locked = 0;
             }
+            //Use tot_job_mutex to update total_jobs without race condition
+            while(waiting){
+                success = pthread_mutex_trylock(&tot_job_mutex);
+                if(success==0) waiting = 0;
+            }
             total_jobs = jobs;
+            pthread_mutex_unlock(&tot_job_mutex);
             break;
         }   
     }
     // Global flag to let other threads know that there is no more input
-    int new_value = 1;
-    set_global(in_fin_mutex,&input_finished,&new_value,INPUT_FINISHED);
+    //Use in_fin_mutex to update input_finished value without a race conditon
+    waiting = 1;
+    while(waiting){
+        success = pthread_mutex_trylock(&in_fin_mutex);
+        if(success==0) waiting = 0;
+    }
+    input_finished = 1;
+    pthread_mutex_unlock(&in_fin_mutex);
     if(IN_DEBUG)   list_print( ready_queue );
 
     free( line_buffer );
     if(IN_DEBUG)   printf( "input thred done\n" );
     return NULL;
 }
-
-// Get the next integer from string tokens
-// Don't use this, for some reason it doesn't work lol
-int get_next_int( char *save_ptr ){
-    return atoi( strtok_r( NULL," ", &save_ptr ) );
-}
-

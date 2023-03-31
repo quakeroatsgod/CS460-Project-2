@@ -16,9 +16,7 @@
 
 #define INPUT_FINISHED 0
 #define TOTAL_JOBS 1
-#define TOTAL_WAIT 2
-#define TOTAL_TURN 3
-#define JOBS_COMPLETE 4
+#define JOBS_COMPLETE 2
 
 #define IN_DEBUG 0
 #define IO_DEBUG 0
@@ -62,7 +60,6 @@ lnode_t * remove_node(list_t *list, lnode_t *node);
 int input_thread_init(pthread_t *input_thread, FILE *fp);
 int input_thread_join(pthread_t input_thread);
 void * input_thread_run(void *data);
-int get_next_int( char *save_ptr );
 
 // CPU thread
 int cpu_thread_init(pthread_t *cpu_thread, int *alg_and_quantum);
@@ -74,7 +71,6 @@ lnode_t * cpu_select_PR();
 lnode_t * cpu_select_RR(int quantum);
 lnode_t * cpu_burst_normal(lnode_t *node);
 lnode_t * cpu_burst_RR(lnode_t *node, int quantum_time );
-int cpu_update_waiting(list_t *list, lnode_t *node, struct timeval wait_time);
 
 // IO thread
 int io_thread_init(pthread_t *io_thread);
@@ -87,5 +83,4 @@ double time_in_ms(struct timeval start, struct timeval end);
 struct timeval get_time();
 
 //Mutexes
-void set_global(pthread_mutex_t mutex, void *value, void *newVal, int caseVal);
-int get_global(pthread_mutex_t mutex, int caseVal);
+int get_global(int caseVal);
