@@ -34,8 +34,6 @@ lnode_t * create_node(int priority, int bursts_count, int *burst_times, int pid,
 
 // Frees the allocation for a single node
 void * free_node(lnode_t *node){
-    // free( node.priority );
-    // free( node.bursts_remaining );
     free( node->burst_times );
     free( node ) ;
     return NULL;

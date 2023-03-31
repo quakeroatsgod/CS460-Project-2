@@ -30,18 +30,18 @@ void * io_thread_run(void *data){
     if(IO_DEBUG)   printf("io thred rnnin\n");
     int ready_locked = 0, io_locked = 0, success = 0;
     lnode_t *node = NULL;
-    while( !get_global(in_fin_mutex,INPUT_FINISHED) || jobs_completed < get_global(tot_job_mutex,TOTAL_JOBS) ){ //Repeat until there are no more jobs
+    while( !get_global(INPUT_FINISHED) || get_global(JOBS_COMPLETE) < get_global(TOTAL_JOBS) ){ //Repeat until there are no more jobs
         if( !io_locked ){
-            // if(IO_DEBUG) printf("io wants io lock to check queue\n");
+            if(IO_DEBUG) printf("io wants io lock to check queue\n");
             success = pthread_mutex_trylock(&io_mutex); //Try to lock io queue
             if(success == 0) io_locked = 1;
         }
         if( io_locked ){
-            // if(IO_DEBUG) printf("io has io lock\n");
+            if(IO_DEBUG) printf("io has io lock\n");
             node = io_queue->head; //Get IO Node
             if(node != NULL) list_pop(io_queue); //Pop Node from front of IO queue
             pthread_mutex_unlock(&io_mutex); //Unlock mutex
-            // if(IO_DEBUG) printf("io released io lock\n");
+            if(IO_DEBUG) printf("io released io lock\n");
             io_locked = 0;
             if(node != NULL){
                 if(IO_DEBUG) printf("io bursting on node pid %d for %d ms with b indicator %d \n", node->pid, node->burst_times[node->burst_indicator], node->burst_indicator);
@@ -54,8 +54,9 @@ void * io_thread_run(void *data){
                     if(success == 0) ready_locked = 1;
                 }
                 if(IO_DEBUG) printf("io has ready lock\n");
-                gettimeofday(&node->wait_began,NULL);
-                list_insert(ready_queue,node);
+                //Start time when node re-enters ready_queue
+                gettimeofday(&node->wait_began,NULL); 
+                list_insert(ready_queue,node); 
                 ready_locked = 0;
                 pthread_mutex_unlock(&ready_mutex);
                 if(IO_DEBUG) printf("io released ready lock\n");
