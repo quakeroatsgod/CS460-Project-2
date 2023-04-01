@@ -36,7 +36,10 @@ iteration again. When the thread gets the mutex, the thread will remove the firs
 the thread will try to get the ready queue mutex. The mutex will be released after adding to the ready queue.
 ## How you switch between scheduling algorithms
 The arguments follow the same format as the assignment directions. It looks like this: `./bin/exec -alg [FCFS|SJF|PR|RR] [-quantum [integer(ms)]] -input [filename]`. You may do `-alg FCFS`, `-alg SJF`, `-alg PR`, or `-alg RR`. 
+
 These selections then determine how nodes are chosen from the ready queue before performing a CPU burst, based on the algorithm specified.
+
+You may also use `make fcfs/pr/rr/sjf` to run an algorithm with the input file `input`.
 ## How you generate data for the required measurements
 - Avg. Waiting Time: The waiting time is measured by the cpu and io threads, and is calculated by taking the difference between the time a process entered the
 ready queue, and the time it runs a CPU burst; this ensures that it only calculates time in the ready queue. These numbers are added to a tally stored within

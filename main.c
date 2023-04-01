@@ -122,8 +122,10 @@ struct timeval get_time(){
 //Mutex wrapper function to access global variables between threads
 int get_global(int caseVal){
     int waiting = 1, success = 0, result = 0;
+    // Get global mutex depending on the macro case
     switch (caseVal)
     {
+    // input_finished
     case INPUT_FINISHED:
         while(waiting){
             success = pthread_mutex_trylock(&in_fin_mutex);
@@ -132,6 +134,7 @@ int get_global(int caseVal){
         result = input_finished;
         pthread_mutex_unlock(&in_fin_mutex);
         break;
+    // total_jobs
     case TOTAL_JOBS:
         while(waiting){
             success = pthread_mutex_trylock(&tot_job_mutex);
@@ -140,6 +143,7 @@ int get_global(int caseVal){
         result = total_jobs;
         pthread_mutex_unlock(&tot_job_mutex);
         break;
+    // jobs_complete
     case JOBS_COMPLETE:
         while(waiting){
             success = pthread_mutex_trylock(&job_complete_mutex);
